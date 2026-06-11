@@ -70,8 +70,8 @@ function filterAPU() {
   if (lga) list = list.filter(function(u) { return u.lga === lga; });
   if (q)   list = list.filter(function(u) {
     return u.code.toLowerCase().indexOf(q) > -1 ||
-           u.name.toLowerCase().indexOf(q) > -1 ||
-           u.ward.toLowerCase().indexOf(q) > -1;
+           u.lga.toLowerCase().indexOf(q) > -1 ||
+           (u.ward && u.ward.toLowerCase().indexOf(q) > -1);
   });
 
   if (countEl) countEl.textContent = list.length + ' unit' + (list.length !== 1 ? 's' : '');
@@ -87,11 +87,10 @@ function filterAPU() {
   var html = '';
   var show = list.slice(0, 80);
   show.forEach(function(u) {
-    var safe = JSON.stringify(u).replace(/'/g, "\\'");
-    html += '<div class="pu-opt" onclick=\'selAPU(' + safe + ')\'>';
+    html += '<div class="pu-opt" onclick="selectAPU(' + encodeURIComponent(JSON.stringify(u)) + ')">';
     html += '<div class="pu-code">' + u.code + '</div>';
-    html += '<div class="pu-name">' + u.name + '</div>';
-    html += '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div>';
+    html += '<div class="pu-name">' + u.lga + (u.ward ? ' — ' + u.ward : '') + '</div>';
+    html += '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>';
     html += '</div>';
   });
   if (list.length > 80) {
@@ -111,15 +110,14 @@ function openAPUDD() {
   var show = list.slice(0, 80);
   var html = '';
   show.forEach(function(u) {
-    var safe = JSON.stringify(u).replace(/'/g, "\\'");
-    html += '<div class="pu-opt" onclick=\'selAPU(' + safe + ')\'>';
+    html += '<div class="pu-opt" onclick="selectAPU(' + encodeURIComponent(JSON.stringify(u)) + ')">';
     html += '<div class="pu-code">' + u.code + '</div>';
-    html += '<div class="pu-name">' + u.name + '</div>';
-    html += '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div>';
+    html += '<div class="pu-name">' + u.lga + (u.ward ? ' — ' + u.ward : '') + '</div>';
+    html += '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>';
     html += '</div>';
   });
   if (!lga) {
-    html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA above or type to search all 2,195 units</div>';
+    html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA above or type to search</div>';
   }
   dd.innerHTML = html;
   dd.classList.add('open');
@@ -133,12 +131,17 @@ function searchAPU() {
   if (dd) dd.classList.add('open');
 }
 
+function selectAPU(encoded) {
+  var u = typeof encoded === 'string' ? JSON.parse(decodeURIComponent(encoded)) : encoded;
+  selAPU(u);
+}
+
 function selAPU(u) {
   agentPU = u;
   var srch = document.getElementById('a-pu-srch');
   var dd   = document.getElementById('a-pu-dd');
   var hdr  = document.getElementById('unit-hdr');
-  if (srch) srch.value = u.code + ' \u2014 ' + u.name;
+  if (srch) srch.value = u.code + ' — ' + u.lga + (u.ward ? ' — ' + u.ward : '');
   if (dd)   dd.classList.remove('open');
   if (hdr)  hdr.textContent = u.code;
   renderAgentPUSel(u);
@@ -152,8 +155,8 @@ function renderAgentPUSel(u) {
   el.innerHTML =
     '<div class="pu-sel">' +
     '<div class="pu-sel-code">' + u.code + '</div>' +
-    '<div class="pu-sel-name">' + u.name + '</div>' +
-    '<div class="pu-sel-meta">' + u.ward + ' &middot; ' + u.lga + ' &middot; ' + u.lat.toFixed(5) + ', ' + u.lng.toFixed(5) + '</div>' +
+    '<div class="pu-sel-name">' + u.lga + (u.ward ? ' — ' + u.ward : '') + '</div>' +
+    '<div class="pu-sel-meta">' + u.lat.toFixed(5) + ', ' + u.lng.toFixed(5) + '</div>' +
     '</div>';
 }
 

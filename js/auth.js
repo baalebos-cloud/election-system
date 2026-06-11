@@ -306,8 +306,8 @@ function searchRegPU() {
   var list = lga ? ALL_POLLING_UNITS.filter(function(u){ return u.lga === lga; }) : ALL_POLLING_UNITS;
   if (q) list = list.filter(function(u){
     return u.code.toLowerCase().indexOf(q) > -1 ||
-           u.name.toLowerCase().indexOf(q) > -1 ||
-           u.ward.toLowerCase().indexOf(q) > -1;
+           u.lga.toLowerCase().indexOf(q) > -1 ||
+           (u.ward && u.ward.toLowerCase().indexOf(q) > -1);
   });
   if (!list.length) {
     dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found</div>';
@@ -315,10 +315,12 @@ function searchRegPU() {
     return;
   }
   dd.innerHTML = list.slice(0, 60).map(function(u) {
+    var display = u.code;
+    var ward = u.ward ? u.ward : '';
     return '<div class="pu-opt" onclick="selectRegPU(' + encodeURIComponent(JSON.stringify(u)) + ')">' +
       '<div class="pu-code">' + u.code + '</div>' +
-      '<div class="pu-name">' + u.name + '</div>' +
-      '<div class="pu-meta">' + u.ward + ' · ' + u.lga + '</div>' +
+      '<div class="pu-name">' + u.lga + (ward ? ' — ' + ward : '') + '</div>' +
+      '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>' +
       '</div>';
   }).join('');
   dd.classList.add('open');
@@ -339,8 +341,8 @@ function selectRegPU(u) {
     sel.innerHTML =
       '<div class="pu-sel">' +
       '<div class="pu-sel-code">' + u.code + '</div>' +
-      '<div class="pu-sel-name">' + u.name + '</div>' +
-      '<div class="pu-sel-meta">' + u.ward + ' · ' + u.lga + ' · ' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>' +
+      '<div class="pu-sel-name">' + u.lga + (u.ward ? ' — ' + u.ward : '') + '</div>' +
+      '<div class="pu-sel-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>' +
       '</div>';
   }
   updateTag();

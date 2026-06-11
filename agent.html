@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Agent Portal — Ekiti State</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="app">
+<div class="threat" id="threat-banner">
+  <i class="fas fa-shield-alt"></i><span id="threat-msg"></span>
+  <span id="threat-detail" style="margin-left:auto;font-size:9px;opacity:.8"></span>
+</div>
+<div class="tb">
+  <div class="tb-brand">
+    <div class="tb-ico">🗳️</div>
+    <div>
+      <div class="tb-nm">Ekiti State — Secure Election Results System</div>
+      <div class="tb-sub">Governorship Election · Official Use Only · All data encrypted &amp; audited</div>
+    </div>
+  </div>
+  <div class="tb-nav"><a href="index.html" class="nb"><i class="fas fa-tv"></i> Situation Room</a>
+    <a href="agent.html" class="nb active"><i class="fas fa-user-shield"></i> Agent Portal</a>
+    <a href="results.html" class="nb"><i class="fas fa-chart-bar"></i> Live Results</a>
+    <a href="security.html" class="nb"><i class="fas fa-lock"></i> Security</a>
+    <a href="register.html" class="nb"><i class="fas fa-user-plus"></i> Register Agent</a></div>
+  <div class="tb-right">
+    <div class="sec-bar" id="sec-bar" onclick="window.location='security.html'">
+      <i class="fas fa-shield-alt"></i><span id="sec-txt">Secure</span>
+    </div>
+    <div class="live-bdg"><div class="ldot"></div>LIVE</div>
+    <div class="clk" id="clk">--:--:--</div>
+  </div>
+</div>
+<div id="agent-screen" class="screen active" style="position:relative">
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay">
+    <div class="login-box" id="login-box">
+      <div class="lockout-box" id="lockout-box">
+        <div style="font-size:42px">🔒</div>
+        <div style="font-size:15px;font-weight:800;color:#fff">Account Temporarily Locked</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.85);max-width:260px;line-height:1.5">Too many failed attempts. Session flagged for INEC security review.</div>
+        <div class="lock-timer" id="lock-timer">05:00</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.7)">Unlocks automatically</div>
+      </div>
+      <div class="login-logo">🗳️</div>
+      <div class="login-title">Secure Agent Login</div>
+      <div class="login-sub">All login attempts are monitored, timestamped, and logged for audit</div>
+      <div class="adots" id="adots">
+        <div class="adot" id="dot-1"></div><div class="adot" id="dot-2"></div>
+        <div class="adot" id="dot-3"></div><div class="adot" id="dot-4"></div><div class="adot" id="dot-5"></div>
+      </div>
+      <div id="att-txt" style="font-size:9px;color:var(--tm);text-align:center;margin-bottom:12px">5 attempts remaining</div>
+      <div class="fg"><label class="fl">Agent ID</label>
+        <input class="fc" id="l-id" placeholder="e.g. EK-APC-AD-0001" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="fg"><label class="fl">PIN / Password</label>
+        <input class="fc" id="l-pin" type="password" placeholder="Your secure PIN" autocomplete="new-password">
+      </div>
+      <div id="captcha-sec" style="display:none;margin-bottom:12px">
+        <div class="captcha-box">
+          <div style="font-size:9px;color:var(--tm);margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em">Security Verification</div>
+          <div class="captcha-q" id="captcha-q">—</div>
+          <input class="fc captcha-inp" id="captcha-inp" placeholder="Answer" autocomplete="off" style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;width:110px;margin:0 auto;display:block">
+        </div>
+      </div>
+      <button class="btn btn-p full" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login Securely</button>
+      <div style="text-align:center;margin-top:10px;font-size:10px;color:var(--tm)">
+        Not registered? <a href="register.html" style="color:var(--g);font-weight:600;text-decoration:none">Register as Agent →</a>
+      </div>
+      <div style="margin-top:9px;background:var(--g50);border-radius:var(--r6);padding:7px 9px;font-size:9px;color:var(--tm);display:flex;gap:5px;align-items:flex-start">
+        <i class="fas fa-info-circle" style="color:var(--blue);margin-top:1px;flex-shrink:0"></i>
+        Protected by rate-limiting, IP monitoring, anomaly detection, brute-force lockout, CAPTCHA, and hash-chained audit logging.
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="asb" id="asb" style="display:none">
+    <div class="asb-hd">
+      <div class="ap-row">
+        <div class="ap-av" id="ap-av">A</div>
+        <div>
+          <div class="ap-nm" id="ap-nm">Agent</div>
+          <div class="ap-tags">
+            <span class="ap-lga" id="ap-lga">📍 LGA</span>
+            <span class="ap-town" id="ap-town">🏘️ Town</span>
+          </div>
+        </div>
+        <button class="logout-b" onclick="doLogout()" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+      </div>
+    </div>
+    <div class="asb-bd">
+      <div class="sb-s">
+        <div class="sb-st">Assignment</div>
+        <div class="inr"><span class="inrl">Agent ID</span><span class="inrv" id="sb-id">—</span></div>
+        <div class="inr"><span class="inrl">Party</span><span class="inrv" id="sb-party">—</span></div>
+        <div class="inr"><span class="inrl">Polling Unit</span><span class="inrv" id="sb-unit">—</span></div>
+        <div class="inr"><span class="inrl">Ward</span><span class="inrv" id="sb-ward">—</span></div>
+        <div class="inr"><span class="inrl">LGA</span><span class="inrv" id="sb-lga">—</span></div>
+        <div class="inr"><span class="inrl">Town</span><span class="inrv" id="sb-town">—</span></div>
+        <div class="inr"><span class="inrl">Status</span><span class="inrv" style="color:var(--g)">● Active</span></div>
+      </div>
+      <div class="sb-s">
+        <div class="sb-st">GPS Location</div>
+        <div class="loc-box" id="loc-box" style="display:none">
+          <i class="fas fa-map-marker-alt"></i>
+          <div><div style="font-weight:600;font-size:10px" id="loc-nm">Set</div>
+          <div style="font-size:9px;color:var(--tm);font-family:'JetBrains Mono',monospace" id="loc-coords">—</div></div>
+        </div>
+        <button class="map-btn" id="map-btn" onclick="openMapModal()">
+          <i class="fas fa-crosshairs"></i> Pick Location on Map
+        </button>
+        <div style="font-size:9px;color:var(--tm);margin-top:5px;line-height:1.5;padding:0 2px">
+          Click the map to drop a pin, type coordinates, or use the <em>Use Unit Coords</em> button to auto-fill your assigned unit location.
+        </div>
+        <div id="repick-btn" style="display:none;margin-top:5px">
+          <button class="map-btn" onclick="reopenMap()" style="border-color:var(--gold);color:#7a5600">
+            <i class="fas fa-redo"></i> Re-pick Location
+          </button>
+        </div>
+      </div>
+      <div class="sb-s">
+        <div class="sb-st">Session Security</div>
+        <div class="inr"><span class="inrl">Session</span><span class="inrv" style="font-family:'JetBrains Mono',monospace;font-size:9px" id="sb-sess">—</span></div>
+        <div class="inr"><span class="inrl">Login Time</span><span class="inrv" id="sb-ltime">—</span></div>
+        <div class="inr"><span class="inrl">Submissions</span><span class="inrv" id="sb-subs">0</span></div>
+      </div>
+      <div class="sb-s">
+        <div class="sb-st">Submission Log</div>
+        <div id="sub-log" style="font-size:10px;color:var(--tm);text-align:center;padding:7px 0">No submissions yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT MAIN -->
+  <div class="amain" id="amain" style="display:none">
+    <div class="amh">
+      <div>
+        <div class="amt">Result Entry Form — EC8A</div>
+        <div class="ams">All entries timestamped, geo-tagged, and cryptographically sealed</div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <span class="bdg bg" id="unit-hdr">Select unit</span>
+        <span style="font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--tm)" id="chain-ind">HASH: —</span>
+      </div>
+    </div>
+    <div class="suc-ov" id="suc-ov">
+      <div class="suc-ico">✅</div>
+      <div style="font-size:17px;font-weight:800">Results Transmitted Successfully</div>
+      <div style="font-size:11px;color:var(--tm);max-width:360px;line-height:1.6">Your results are live on the dashboard. A cryptographic receipt has been generated and logged.</div>
+      <div class="receipt" id="sub-receipt"></div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-s" onclick="resetForm()">Submit Another Entry</button>
+        <button class="btn btn-p" onclick="window.location.href='results.html'"><i class="fas fa-chart-bar"></i> View Live Results</button>
+      </div>
+    </div>
+    <div class="amb" id="agent-body">
+      <!-- PU Selector -->
+      <div class="card full">
+        <div class="card-h"><div class="card-t">📍 Select Your Polling Unit</div><span class="bdg bgr" id="pu-count">2,195 units</span></div>
+        <div class="card-b">
+          <div class="grid2" style="margin-bottom:10px">
+            <div class="fg" style="margin:0"><label class="fl">Filter by LGA</label>
+              <select class="fc fcs" id="a-lga-filt" onchange="filterAPU()">
+                <option value="">All LGAs</option>
+                <option value="ADO-EKITI">ADO-EKITI</option>
+                <option value="EFON">EFON</option>
+                <option value="EKITI EAST">EKITI EAST</option>
+                <option value="EKITI SOUTH-WEST">EKITI SOUTH-WEST</option>
+                <option value="EKITI WEST">EKITI WEST</option>
+                <option value="EMURE">EMURE</option>
+                <option value="GBOYIN">GBOYIN</option>
+                <option value="IDO/OSI">IDO/OSI</option>
+                <option value="IJERO">IJERO</option>
+                <option value="IKERE">IKERE</option>
+                <option value="IKOLE">IKOLE</option>
+                <option value="ILEJEMEJE">ILEJEMEJE</option>
+                <option value="IREPODUN/IFELODUN">IREPODUN/IFELODUN</option>
+                <option value="ISE/ORUN">ISE/ORUN</option>
+                <option value="MOBA">MOBA</option>
+                <option value="OYE">OYE</option>
+              </select>
+            </div>
+            <div class="fg" style="margin:0"><label class="fl">Search Polling Unit</label>
+              <div class="pu-wrap">
+                <input class="fc" id="a-pu-srch" placeholder="Type code or name..." oninput="searchAPU()" onfocus="openAPUDD()" autocomplete="off">
+                <div class="pu-dd" id="a-pu-dd"></div>
+              </div>
+            </div>
+          </div>
+          <div id="a-pu-sel" style="display:none"></div>
+        </div>
+      </div>
+      <!-- Results Form -->
+      <div class="card">
+        <div class="card-h"><div class="card-t">📊 Vote Counts — All Parties</div><span class="bdg bg">EC8A Form</span></div>
+        <div class="card-b" id="rform"></div>
+      </div>
+      <!-- Evidence Upload -->
+      <div class="card">
+        <div class="card-h"><div class="card-t">📸 EC8A Result Sheet Evidence</div><span class="bdg bo">Required</span></div>
+        <div class="card-b">
+          <div class="ev-up" id="ev-up" onclick="document.getElementById('ev-inp').click()">
+            <i class="fas fa-camera" style="font-size:26px;color:var(--g400)"></i>
+            <div style="font-size:12px;font-weight:600">Snap or Upload the Signed EC8A Sheet</div>
+            <div style="font-size:9px;color:var(--tm)">Take a clear photo as legal evidence · JPG/PNG/PDF · Max 10MB</div>
+            <img class="ev-thumb" id="ev-thumb" alt="ec8a">
+          </div>
+          <input type="file" id="ev-inp" accept="image/*,application/pdf" style="display:none" onchange="handleEvidence()">
+          <div id="ev-info" style="display:none;margin-top:7px;font-size:10px;color:var(--gd);background:var(--gl);padding:6px 9px;border-radius:var(--r6);border:1px solid rgba(0,176,79,.2)">
+            <i class="fas fa-check-circle"></i> <span id="ev-filename">File</span> · Encrypted &amp; stored securely
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);margin-bottom:7px">Additional Information</div>
+            <div class="fg"><label class="fl">Presiding Officer Name</label><input class="fc" id="officer" placeholder="Full name as on EC8A"></div>
+            <div class="grid2">
+              <div class="fg"><label class="fl">Registered Voters</label><input type="number" class="fc" id="reg-v" placeholder="Total registered"></div>
+              <div class="fg"><label class="fl">Accredited Voters</label><input type="number" class="fc" id="acc-v" placeholder="Total accredited"></div>
+            </div>
+            <div class="fg"><label class="fl">Rejected Ballots</label><input type="number" class="fc" id="rej-v" placeholder="0" value="0"></div>
+            <div class="fg"><label class="fl">Remarks / Incident Report</label>
+              <textarea class="fc" id="remarks" rows="3" placeholder="Report any irregularity, incident or observation..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Submit -->
+      <div class="sub-sect">
+        <div class="card-t" style="margin-bottom:3px">🔒 Review &amp; Submit</div>
+        <div style="font-size:9px;color:var(--tm)">All entries are final. Cannot be altered after submission.</div>
+        <div class="sub-sum">
+          <div><div style="font-size:9px;color:var(--tm)">Total Votes Entered</div><div class="sub-tv" id="tot-votes">0</div></div>
+          <div style="text-align:right"><div style="font-size:9px;color:var(--tm)">Leading Party</div><div style="font-size:12px;font-weight:700" id="lead-party">—</div></div>
+        </div>
+        <div class="chain" id="chain-disp">Integrity hash: awaiting data...</div>
+        <button class="sub-btn" id="sub-btn" onclick="submitResults()">
+          <i class="fas fa-paper-plane"></i> Transmit Results to Central Server
+        </button>
+        <div class="disc"><i class="fas fa-shield-alt"></i>
+          By submitting you confirm this data matches the signed EC8A. This is legally binding under the Electoral Act 2022. False declarations are criminal.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="map-modal">
+  <div class="mm-box">
+    <div class="mm-h">
+      <div><div class="mm-t">📍 Set Your GPS Location</div><div class="mm-s">Click the map or use device GPS to pin your exact position at this polling unit</div></div>
+      <button class="close-btn" onclick="closeMap()">✕</button>
+    </div>
+    <div id="picker-map" style="flex:1;min-height:400px;width:100%;display:block"></div>
+
+    <!-- MANUAL COORDINATE ENTRY PANEL -->
+    <div id="manual-coord-panel" style="display:none;padding:12px 20px;background:var(--g50);border-top:1px solid var(--g200)">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);margin-bottom:8px">
+        <i class="fas fa-keyboard" style="color:var(--blue)"></i> Manual Coordinate Entry
+      </div>
+      <div id="manual-coord-msg" style="font-size:10px;margin-bottom:8px;color:var(--tm)">
+        Enter decimal coordinates for your polling unit location.
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);display:block;margin-bottom:3px">Latitude (e.g. 7.622900)</label>
+          <input type="number" step="0.000001" id="manual-lat" class="fc" placeholder="7.622900" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600">
+        </div>
+        <div style="flex:1;min-width:160px">
+          <label style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tm);display:block;margin-bottom:3px">Longitude (e.g. 5.220900)</label>
+          <input type="number" step="0.000001" id="manual-lng" class="fc" placeholder="5.220900" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600">
+        </div>
+        <button class="btn btn-p" onclick="applyManualCoords()" style="padding:9px 16px;flex-shrink:0">
+          <i class="fas fa-map-marker-alt"></i> Plot on Map
+        </button>
+      </div>
+      <div style="margin-top:8px;font-size:9px;color:var(--tm)">
+        💡 Tip: For Ekiti State, latitude is between <strong>6.8 – 8.1</strong> and longitude between <strong>4.8 – 5.8</strong>.
+        You can also simply <strong>click anywhere on the map</strong> above to drop a pin.
+      </div>
+    </div>
+
+    <div class="mm-f">
+      <div class="coord-d" id="picked-coords">No location selected — click map</div>
+      <div style="display:flex;gap:7px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-s" onclick="useGPS()" title="Try device GPS"><i class="fas fa-satellite"></i> Try GPS</button>
+          <button class="btn btn-s" onclick="showManualCoordPanel()" title="Type coordinates"><i class="fas fa-keyboard"></i> Manual Entry</button>
+          <button class="btn btn-s" onclick="useUnitCoords()" title="Use your assigned unit location" style="background:var(--bluel);color:var(--blue)"><i class="fas fa-map-pin"></i> Use Unit Coords</button>
+          <button class="btn btn-p" onclick="confirmLoc()" style="padding:8px 15px"><i class="fas fa-check"></i> Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img class="lb-img" id="lb-img" src="" alt="evidence">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+</div>
+
+<div class="sec-block" id="sec-block">
+  <div style="font-size:60px">🚨</div>
+  <div class="sec-block-t">ACCESS BLOCKED — SECURITY VIOLATION</div>
+  <div class="sec-block-sub" id="sec-block-msg">Session terminated. All activity has been logged and reported to INEC security.</div>
+  <div class="sec-block-h" id="sec-block-hash"></div>
+  <button class="btn btn-s" onclick="document.getElementById('sec-block').classList.remove('active')">Dismiss</button>
+</div>
+
+<div id="toast-c">
+<div id="toast-c"></div>
+</div>
+<script src="js/data/parties.js?v=202605301027"></script>
+<script src="js/data/polling-units.js?v=202605301027"></script>
+<script src="js/security.js?v=202605301027"></script>
+<script src="js/map.js?v=202605301027"></script>
+<script src="js/auth.js?v=202605301027"></script>
+<script src="js/results.js?v=202605301027"></script>
+<script src="js/app.js?v=202605301027"></script>
+</body>
+</html>

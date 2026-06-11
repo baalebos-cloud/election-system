@@ -1,0 +1,91 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Situation Room — Ekiti State</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/css/main.css">
+
+</head>
+<body>
+<div id="app">
+
+<div class="threat" id="threat-banner">
+  <i class="fas fa-shield-alt"></i><span id="threat-msg"></span>
+  <span id="threat-detail" style="margin-left:auto;font-size:9px;opacity:.8"></span>
+</div>
+<div class="tb">
+  <div class="tb-brand">
+    <div class="tb-ico">🗳️</div>
+    <div>
+      <div class="tb-nm">Ekiti State — Secure Election Results System</div>
+      <div class="tb-sub">Governorship Election · Official Use Only · All data encrypted &amp; audited</div>
+    </div>
+  </div>
+  <div class="tb-nav">
+    <a href="index.html" class="nb active"><i class="fas fa-tv"></i> Situation Room</a>
+    <a href="agent.html" class="nb"><i class="fas fa-user-shield"></i> Agent Portal</a>
+    <a href="results.html" class="nb"><i class="fas fa-chart-bar"></i> Live Results</a>
+    <a href="security.html" class="nb"><i class="fas fa-lock"></i> Security</a>
+    <a href="register.html" class="nb"><i class="fas fa-user-plus"></i> Register Agent</a>
+  </div>
+  <div class="tb-right">
+    <div class="sec-bar" id="sec-bar" onclick="window.location='security.html'">
+      <i class="fas fa-shield-alt"></i><span id="sec-txt">Secure</span>
+    </div>
+    <div class="live-bdg"><div class="ldot"></div>LIVE</div>
+    <div class="clk" id="clk">--:--:--</div>
+  </div>
+</div>
+
+<div id="dashboard-screen" class="screen active">
+  <div class="dh">
+    <div><div class="dt">Situation Room — Governorship Election 2024</div>
+    <div class="ds">Ekiti State · All 16 LGAs · 905 Polling Units · Real-time monitoring</div></div>
+    <button class="btn btn-s" onclick="refreshDash()"><i class="fas fa-sync-alt"></i> Refresh</button>
+  </div>
+  <div class="stats">
+    <div class="sc sc-g"><div class="sl">Units Reported</div><div class="sv" id="st-rep">0</div><div class="sm">of 905 total</div></div>
+    <div class="sc sc-o"><div class="sl">Total Votes Cast</div><div class="sv" id="st-votes">0</div><div class="sm">accredited ballots</div></div>
+    <div class="sc sc-b"><div class="sl">Agents Online</div><div class="sv" id="st-agents">0</div><div class="sm">across all LGAs</div></div>
+    <div class="sc sc-r"><div class="sl">Security Alerts</div><div class="sv" id="st-alerts">0</div><div class="sm">flagged for review</div></div>
+    <div class="sc sc-p"><div class="sl">Sealed Submissions</div><div class="sv" id="st-subs">0</div><div class="sm">hash-verified</div></div>
+  </div>
+  <div class="dbr c21">
+    <div class="card">
+      <div class="card-h"><div class="card-t">📍 Live Reporting Map — Ekiti State</div><span class="bdg bg">Live</span></div>
+      <div id="dash-map"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">📡 Live Updates Feed</div><span class="bdg bgr" id="feed-bdg">—</span></div>
+      <div style="padding:0 13px"><div class="feed-list" id="feed-list"></div></div>
+    </div>
+  </div>
+  <div class="dbr c12">
+    <div class="card">
+      <div class="card-h"><div class="card-t">👤 Agent Activity Monitor</div></div>
+      <div class="card-b" id="agent-mon"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="card-t">📊 Running Totals by Party</div><span class="bdg bo" id="pct-bdg">Partial</span></div>
+      <div style="padding:0"><table class="rtbl" id="rtbl"></table></div>
+    </div>
+  </div>
+</div>
+<div id="toast-c"></div>
+
+<script src="js/data/parties.js"></script>
+<script src="js/data/polling-units.js"></script>
+<script src="js/security.js"></script>
+<script src="js/map.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/results.js"></script>
+<script src="js/app.js"></script>
+</div><!-- /#app -->
+</body>
+</html>

@@ -176,24 +176,27 @@ function triggerSecurityBlock(reason) {
 }
 
 function doLogout() {
+  // Capture id before nulling
+  const logoutId = currentAgent ? currentAgent.id : null;
   if (currentAgent) {
     SEC.activeSessions.delete(currentAgent.tok);
     SEC.log('ok', 'Agent logged out: ' + currentAgent.id);
   }
-  currentAgent = null; agentPU = null;
-  pickedLat = null; pickedLng = null;
 
   // Mark session offline in localStorage
-  if (currentAgent) {
+  if (logoutId) {
     try {
       const sessions = JSON.parse(localStorage.getItem('ekiti_sessions') || '{}');
-      if (sessions[currentAgent.id]) {
-        sessions[currentAgent.id].status   = 'offline';
-        sessions[currentAgent.id].lastSeen = new Date().toISOString();
+      if (sessions[logoutId]) {
+        sessions[logoutId].status   = 'offline';
+        sessions[logoutId].lastSeen = new Date().toISOString();
         localStorage.setItem('ekiti_sessions', JSON.stringify(sessions));
       }
     } catch(e) {}
   }
+
+  currentAgent = null; agentPU = null;
+  pickedLat = null; pickedLng = null;
 
   document.getElementById('login-overlay').style.display = 'flex';
   document.getElementById('asb').style.display   = 'none';
@@ -311,20 +314,18 @@ function searchRegPU() {
     dd.classList.add('open');
     return;
   }
-  var html = '';
-  list.slice(0, 60).forEach(function(u) {
-    var uJson = JSON.stringify(u).replace(/'/g, "\'");
-    html += '<div class="pu-opt" onclick='selectRegPU(' + uJson + ')'>';
-    html += '<div class="pu-code">' + u.code + '</div>';
-    html += '<div class="pu-name">' + u.name + '</div>';
-    html += '<div class="pu-meta">' + u.ward + ' · ' + u.lga + '</div>';
-    html += '</div>';
-  });
-  dd.innerHTML = html;
+  dd.innerHTML = list.slice(0, 60).map(function(u) {
+    return '<div class="pu-opt" onclick="selectRegPU(' + encodeURIComponent(JSON.stringify(u)) + ')">' +
+      '<div class="pu-code">' + u.code + '</div>' +
+      '<div class="pu-name">' + u.name + '</div>' +
+      '<div class="pu-meta">' + u.ward + ' · ' + u.lga + '</div>' +
+      '</div>';
+  }).join('');
   dd.classList.add('open');
 }
 
 function selectRegPU(u) {
+  if (typeof u === 'string') { try { u = JSON.parse(decodeURIComponent(u)); } catch(e) { return; } }
   regPU = u;
   var srch = document.getElementById('r-pu-srch');
   var dd   = document.getElementById('r-pu-dd');

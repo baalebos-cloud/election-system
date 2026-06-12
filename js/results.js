@@ -56,7 +56,14 @@ function seedMockData() {
 }
 
 // ── POLLING UNIT PICKER ───────────────────────────────────
+var _puMap = {};
+function _buildPUMap() {
+  if (Object.keys(_puMap).length) return;
+  ALL_POLLING_UNITS.forEach(function(u) { _puMap[u.code] = u; });
+}
+
 function filterAPU() {
+  _buildPUMap();
   var lgaEl   = document.getElementById('a-lga-filt');
   var srchEl  = document.getElementById('a-pu-srch');
   var dd      = document.getElementById('a-pu-dd');
@@ -85,44 +92,37 @@ function filterAPU() {
   }
 
   var html = '';
-  var show = list.slice(0, 80);
-  show.forEach(function(u) {
-    html += '<div class="pu-opt" onclick="selectAPU(' + encodeURIComponent(JSON.stringify(u)) + ')">';
+  list.slice(0, 80).forEach(function(u) {
+    html += '<div class="pu-opt" onclick="selectAPU(\'' + u.code + '\')">';
     html += '<div class="pu-code">' + u.code + '</div>';
     html += '<div class="pu-name">' + u.lga + (u.ward ? ' — ' + u.ward : '') + '</div>';
     html += '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>';
     html += '</div>';
   });
-  if (list.length > 80) {
-    html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">&hellip; and ' + (list.length - 80) + ' more &mdash; type to narrow down</div>';
-  }
+  if (list.length > 80) html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">&hellip; ' + (list.length - 80) + ' more — type to narrow down</div>';
   dd.innerHTML = html;
   dd.classList.add('open');
 }
 
 function openAPUDD() {
+  _buildPUMap();
   var lga = document.getElementById('a-lga-filt') ? document.getElementById('a-lga-filt').value : '';
-  var q   = document.getElementById('a-pu-srch')  ? document.getElementById('a-pu-srch').value.trim()  : '';
+  var q   = document.getElementById('a-pu-srch')  ? document.getElementById('a-pu-srch').value.trim() : '';
   var dd  = document.getElementById('a-pu-dd');
   if (!dd) return;
-
+  if (q) { filterAPU(); return; }
   var list = lga ? ALL_POLLING_UNITS.filter(function(u) { return u.lga === lga; }) : ALL_POLLING_UNITS;
-  var show = list.slice(0, 80);
   var html = '';
-  show.forEach(function(u) {
-    html += '<div class="pu-opt" onclick="selectAPU(' + encodeURIComponent(JSON.stringify(u)) + ')">';
+  list.slice(0, 80).forEach(function(u) {
+    html += '<div class="pu-opt" onclick="selectAPU(\'' + u.code + '\')">';
     html += '<div class="pu-code">' + u.code + '</div>';
     html += '<div class="pu-name">' + u.lga + (u.ward ? ' — ' + u.ward : '') + '</div>';
     html += '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>';
     html += '</div>';
   });
-  if (!lga) {
-    html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA above or type to search</div>';
-  }
+  if (!lga) html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA above or type to search</div>';
   dd.innerHTML = html;
   dd.classList.add('open');
-
-  if (q) filterAPU();
 }
 
 function searchAPU() {
@@ -131,8 +131,10 @@ function searchAPU() {
   if (dd) dd.classList.add('open');
 }
 
-function selectAPU(encoded) {
-  var u = typeof encoded === 'string' ? JSON.parse(decodeURIComponent(encoded)) : encoded;
+function selectAPU(code) {
+  _buildPUMap();
+  var u = _puMap[code];
+  if (!u) return;
   selAPU(u);
 }
 

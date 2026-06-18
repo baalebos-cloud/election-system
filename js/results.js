@@ -55,18 +55,6 @@ function seedMockData() {
 }
 
 // ── POLLING UNIT PICKER ───────────────────────────────────
-// -- PU lookup map (keyed by code) -----------------------------------------
-var _puMap = {};
-(function() { for (var i = 0; i < ALL_POLLING_UNITS.length; i++) { _puMap[ALL_POLLING_UNITS[i].code] = ALL_POLLING_UNITS[i]; } })();
-
-function _puRow(u) {
-  return '<div class="pu-opt" onclick="selAPU(\'' + u.code + '\')">' +
-    '<div class="pu-code">' + u.code + '</div>' +
-    '<div class="pu-name">' + u.lga + (u.ward ? ' \u2014 ' + u.ward : '') + '</div>' +
-    '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>' +
-    '</div>';
-}
-
 function filterAPU() {
   var lgaEl  = document.getElementById('a-lga-filt');
   var srchEl = document.getElementById('a-pu-srch');
@@ -77,39 +65,55 @@ function filterAPU() {
   var lga  = lgaEl.value;
   var q    = srchEl.value.toLowerCase().trim();
   var list = ALL_POLLING_UNITS;
+  var i, u, safe, html;
 
-  if (lga) list = list.filter(function(u) { return u.lga === lga; });
-  if (q)   list = list.filter(function(u) {
+  if (lga) list = list.filter(function(u){ return u.lga === lga; });
+  if (q)   list = list.filter(function(u){
     return u.code.toLowerCase().indexOf(q) > -1 ||
-           u.lga.toLowerCase().indexOf(q)  > -1 ||
-           (u.ward && u.ward.toLowerCase().indexOf(q) > -1);
+           u.name.toLowerCase().indexOf(q) > -1 ||
+           u.ward.toLowerCase().indexOf(q) > -1;
   });
 
   if (cntEl) cntEl.textContent = list.length + ' unit' + (list.length !== 1 ? 's' : '');
   if (!q && !lga) { dd.classList.remove('open'); return; }
   if (!list.length) {
-    dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found</div>';
+    dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found \u2014 try a different search</div>';
     dd.classList.add('open');
     return;
   }
 
-  var html = '', i;
-  for (i = 0; i < Math.min(list.length, 80); i++) html += _puRow(list[i]);
-  if (list.length > 80) html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">... and ' + (list.length - 80) + ' more - type to narrow</div>';
+  html = '';
+  for (i = 0; i < Math.min(list.length, 80); i++) {
+    u    = list[i];
+    safe = JSON.stringify(u).replace(/'/g, "\\'");
+    html += '<div class="pu-opt" onclick=\'selAPU(' + safe + ')\'>' +
+      '<div class="pu-code">' + u.code + '</div>' +
+      '<div class="pu-name">' + u.name + '</div>' +
+      '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
+  }
+  if (list.length > 80) {
+    html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">&hellip; and ' + (list.length - 80) + ' more \u2014 type to narrow</div>';
+  }
   dd.innerHTML = html;
   dd.classList.add('open');
 }
 
 function openAPUDD() {
-  var lga  = document.getElementById('a-lga-filt') ? document.getElementById('a-lga-filt').value : '';
-  var dd   = document.getElementById('a-pu-dd');
-  if (!dd) return;
-  var list = lga ? ALL_POLLING_UNITS.filter(function(u) { return u.lga === lga; }) : ALL_POLLING_UNITS;
-  var html = '', i;
-  for (i = 0; i < Math.min(list.length, 80); i++) html += _puRow(list[i]);
-  if (!lga) html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA above or type to search</div>';
-  dd.innerHTML = html;
-  dd.classList.add('open');
+  var lga = document.getElementById('a-lga-filt') ? document.getElementById('a-lga-filt').value : '';
+  var dd  = document.getElementById('a-pu-dd');
+  var list = lga ? ALL_POLLING_UNITS.filter(function(u){ return u.lga === lga; }) : ALL_POLLING_UNITS;
+  var show = list.slice(0, 80);
+  var html = '', i, u, safe;
+  for (i = 0; i < show.length; i++) {
+    u    = show[i];
+    safe = JSON.stringify(u).replace(/'/g, "\\'");
+    html += '<div class="pu-opt" onclick=\'selAPU(' + safe + ')\'>' +
+      '<div class="pu-code">' + u.code + '</div>' +
+      '<div class="pu-name">' + u.name + '</div>' +
+      '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
+  }
+  if (!lga) html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA or type to search all 2,195 units</div>';
+  if (dd) { dd.innerHTML = html; dd.classList.add('open'); }
 }
 
 function searchAPU() {
@@ -118,14 +122,12 @@ function searchAPU() {
   if (dd) dd.classList.add('open');
 }
 
-function selAPU(code) {
-  var u = typeof code === 'string' ? _puMap[code] : code;
-  if (!u) return;
+function selAPU(u) {
   agentPU = u;
   var s = document.getElementById('a-pu-srch');
   var d = document.getElementById('a-pu-dd');
   var h = document.getElementById('unit-hdr');
-  if (s) s.value = u.code + ' \u2014 ' + u.lga + (u.ward ? ' \u2014 ' + u.ward : '');
+  if (s) s.value = u.code + ' \u2014 ' + u.name;
   if (d) d.classList.remove('open');
   if (h) h.textContent = u.code;
   renderAgentPUSel(u);
@@ -138,11 +140,12 @@ function renderAgentPUSel(u) {
   el.style.display = 'block';
   el.innerHTML = '<div class="pu-sel">' +
     '<div class="pu-sel-code">' + u.code + '</div>' +
-    '<div class="pu-sel-name">' + u.lga + (u.ward ? ' \u2014 ' + u.ward : '') + '</div>' +
-    '<div class="pu-sel-meta">' + u.lat.toFixed(5) + ', ' + u.lng.toFixed(5) + '</div>' +
+    '<div class="pu-sel-name">' + u.name + '</div>' +
+    '<div class="pu-sel-meta">' + u.ward + ' &middot; ' + u.lga + ' &middot; ' + u.lat.toFixed(5) + ', ' + u.lng.toFixed(5) + '</div>' +
     '</div>';
 }
 
+// ── RESULTS FORM ──────────────────────────────────────────
 function buildResultsForm() {
   var container = document.getElementById('rform');
   if (!container) return;

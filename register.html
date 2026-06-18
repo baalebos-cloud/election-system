@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
-<title>Register Agent — Ekiti State</title>
+<meta name="robots" content="noindex,nofollow">
+<title>Register Agent — INEC Ekiti State</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,10 +19,10 @@
 </div>
 <div class="tb">
   <div class="tb-brand">
-    <div class="tb-ico">🗳️</div>
+    <div class="tb-ico">&#x1F5F3;&#xFE0F;</div>
     <div>
-      <div class="tb-nm">Ekiti State — Secure Election Results System</div>
-      <div class="tb-sub">Governorship Election · Official Use Only · All data encrypted &amp; audited</div>
+      <div class="tb-nm">INEC Ekiti State &mdash; Secure Election Results System</div>
+      <div class="tb-sub">Governorship Election &middot; Official Use Only &middot; Encrypted &amp; Audited</div>
     </div>
   </div>
   <div class="tb-nav"><a href="index.html" class="nb"><i class="fas fa-tv"></i> Situation Room</a>
@@ -38,21 +38,21 @@
     <div class="clk" id="clk">--:--:--</div>
   </div>
 </div>
-<div id="reg-screen" class="screen active" style="flex-direction:column;align-items:center;justify-content:flex-start;background:linear-gradient(135deg,var(--g800) 0%,#0d1f18 100%);overflow-y:auto;padding:24px 16px">
+<div id="reg-screen" class="screen active">
 <div class="reg-box">
   <div class="reg-hdr">
-    <div class="reg-logo">🗳️</div>
+    <div class="reg-logo">&#x1F5F3;&#xFE0F;</div>
     <div class="reg-title">Party Agent Registration Portal</div>
-    <div class="reg-sub">Register to receive your secure agent credentials and ID tag · All data encrypted and audited by INEC</div>
+    <div class="reg-sub">Register to receive your secure Agent ID tag &middot; All data encrypted and audited by INEC</div>
   </div>
   <div class="sec-notice">
     <i class="fas fa-exclamation-triangle" style="flex-shrink:0;margin-top:1px"></i>
-    <div>Registration is strictly for accredited party agents. Providing false information is a criminal offence under the Electoral Act 2022. Your biometric data, device fingerprint, and GPS location will be captured and verified.</div>
+    <div>Registration is strictly for accredited party agents. Providing false information is a criminal offence under the Electoral Act 2022. Your device fingerprint and location will be captured at registration.</div>
   </div>
   <div class="step-tabs">
     <div class="stab active" id="rtab-1"><div class="stab-n">1</div>Personal Info</div>
-    <div class="stab" id="rtab-2"><div class="stab-n">2</div>Party & Unit</div>
-    <div class="stab" id="rtab-3"><div class="stab-n">3</div>Identity Docs</div>
+    <div class="stab" id="rtab-2"><div class="stab-n">2</div>Party &amp; Unit</div>
+    <div class="stab" id="rtab-3"><div class="stab-n">3</div>Documents</div>
     <div class="stab" id="rtab-4"><div class="stab-n">4</div>Credentials</div>
     <div class="stab" id="rtab-5"><div class="stab-n">5</div>Your Tag</div>
   </div>
@@ -68,7 +68,9 @@
       <div class="fg"><label class="fl">Gender *</label>
         <select class="fc fcs" id="r-gn"><option value="">Select</option><option>Male</option><option>Female</option></select>
       </div>
-      <div class="fg full"><label class="fl">Residential Address *</label><input class="fc" id="r-addr" placeholder="House No, Street, Town, LGA, Ekiti State"></div>
+      <div class="fg full"><label class="fl">Residential Address *</label>
+        <input class="fc" id="r-addr" placeholder="House No, Street, Town, LGA, Ekiti State">
+      </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:10px">
       <button class="btn btn-p" onclick="rNext(1)"><i class="fas fa-arrow-right"></i> Next</button>
@@ -81,14 +83,14 @@
       <div class="fg"><label class="fl">Political Party *</label>
         <select class="fc fcs" id="r-party" onchange="updateTag()">
           <option value="">Select party</option>
-          <option value="APC">APC — All Progressives Congress</option>
-          <option value="PDP">PDP — Peoples Democratic Party</option>
-          <option value="LP">LP — Labour Party</option>
-          <option value="NNPP">NNPP — New Nigeria Peoples Party</option>
-          <option value="ADC">ADC — African Democratic Congress</option>
-          <option value="YPP">YPP — Young Progressives Party</option>
-          <option value="SDP">SDP — Social Democratic Party</option>
-          <option value="APM">APM — Action Peoples Movement</option>
+          <option value="APC">APC &mdash; All Progressives Congress</option>
+          <option value="PDP">PDP &mdash; Peoples Democratic Party</option>
+          <option value="LP">LP &mdash; Labour Party</option>
+          <option value="NNPP">NNPP &mdash; New Nigeria Peoples Party</option>
+          <option value="ADC">ADC &mdash; African Democratic Congress</option>
+          <option value="YPP">YPP &mdash; Young Progressives Party</option>
+          <option value="SDP">SDP &mdash; Social Democratic Party</option>
+          <option value="APM">APM &mdash; Action Peoples Movement</option>
         </select>
       </div>
       <div class="fg"><label class="fl">LGA *</label>
@@ -113,14 +115,14 @@
         </select>
       </div>
       <div class="fg full">
-        <label class="fl">Search & Select Polling Unit *</label>
+        <label class="fl">Search &amp; Select Polling Unit *</label>
         <div class="pu-wrap">
-          <input class="fc" id="r-pu-srch" placeholder="Type unit code or name..." oninput="searchRegPU()" onfocus="openRegDD()" autocomplete="off">
+          <input class="fc" id="r-pu-srch" placeholder="Select LGA first, then type to search..." oninput="searchRegPU()" onfocus="openRegDD()" autocomplete="off">
           <div class="pu-dd" id="r-pu-dd"></div>
         </div>
         <div id="r-pu-sel" style="margin-top:6px;display:none"></div>
       </div>
-      <div class="fg"><label class="fl">Ward (auto-filled)</label><input class="fc" id="r-ward" readonly placeholder="Auto-filled"></div>
+      <div class="fg"><label class="fl">Ward (auto-filled)</label><input class="fc" id="r-ward" readonly placeholder="Auto-filled from unit"></div>
       <div class="fg"><label class="fl">Town / Area *</label><input class="fc" id="r-town" placeholder="e.g. Ado Ekiti Central" oninput="updateTag()"></div>
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:10px">
@@ -137,17 +139,17 @@
         <div class="photo-up" id="pup-1" onclick="document.getElementById('pi-1').click()">
           <i class="fas fa-camera" style="font-size:22px;color:var(--g400)"></i>
           <div style="font-size:11px;font-weight:600">Click to upload passport photo</div>
-          <div style="font-size:9px;color:var(--tm)">JPG/PNG · Max 5MB · Clear face, white background</div>
+          <div style="font-size:9px;color:var(--tm)">JPG/PNG &middot; Max 5MB &middot; Clear face</div>
           <img class="photo-prev" id="pp-1" alt="passport">
         </div>
         <input type="file" id="pi-1" accept="image/*" style="display:none" onchange="handlePhoto('pi-1','pp-1','pup-1')">
       </div>
       <div class="fg">
-        <label class="fl">Voter's Card / NIN Slip *</label>
+        <label class="fl">Voter&#39;s Card / NIN Slip *</label>
         <div class="photo-up" id="pup-2" onclick="document.getElementById('pi-2').click()">
           <i class="fas fa-id-card" style="font-size:22px;color:var(--g400)"></i>
           <div style="font-size:11px;font-weight:600">Upload ID Document</div>
-          <div style="font-size:9px;color:var(--tm)">Clear scan of your Voter Card or NIN slip</div>
+          <div style="font-size:9px;color:var(--tm)">Clear scan of Voter Card or NIN slip</div>
           <img class="photo-prev" id="pp-2" alt="id">
         </div>
         <input type="file" id="pi-2" accept="image/*,application/pdf" style="display:none" onchange="handlePhoto('pi-2','pp-2','pup-2')">
@@ -156,7 +158,7 @@
         <label class="fl">Party Authorization Letter (optional)</label>
         <div class="photo-up" id="pup-3" onclick="document.getElementById('pi-3').click()">
           <i class="fas fa-file-alt" style="font-size:20px;color:var(--g400)"></i>
-          <div style="font-size:11px;font-weight:600">Letter from party chairman authorizing you as agent</div>
+          <div style="font-size:11px;font-weight:600">Letter from party chairman</div>
           <img class="photo-prev" id="pp-3" alt="auth">
         </div>
         <input type="file" id="pi-3" accept="image/*,application/pdf" style="display:none" onchange="handlePhoto('pi-3','pp-3','pup-3')">
@@ -171,7 +173,7 @@
   <!-- STEP 4 -->
   <div class="rsec" id="rsec-4">
     <div class="sec-notice"><i class="fas fa-lock"></i>
-      <div>Create a strong PIN (6–12 chars). Mix numbers and letters. Do NOT share it with anyone. Your PIN is hashed and cannot be recovered.</div>
+      <div>Create a strong PIN (6-12 characters). Mix numbers and letters. Never share it. Your PIN is hashed and cannot be recovered.</div>
     </div>
     <div class="grid2">
       <div class="fg">
@@ -186,10 +188,9 @@
         <select class="fc fcs" id="r-sq">
           <option value="">Select question</option>
           <option>What is the name of your primary school?</option>
-          <option>What is your mother's maiden name?</option>
+          <option>What is your mother&#39;s maiden name?</option>
           <option>What was the name of your first pet?</option>
           <option>What town were you born in?</option>
-          <option>What is your oldest sibling's middle name?</option>
         </select>
       </div>
       <div class="fg"><label class="fl">Security Answer *</label><input class="fc" id="r-sa" placeholder="Case sensitive"></div>
@@ -204,49 +205,52 @@
   <div class="rsec" id="rsec-5">
     <div class="grid2">
       <div>
-        <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--ts)">📋 Registration Summary</div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--ts)">Registration Summary</div>
         <div id="reg-summary" style="background:var(--g50);border:1px solid var(--g100);border-radius:var(--r10);padding:11px;font-size:11px;line-height:1.9"></div>
         <div class="sec-notice" style="margin-top:10px;margin-bottom:0">
           <i class="fas fa-shield-alt"></i>
-          <div>By completing registration you consent to device fingerprinting, GPS logging at every login, full audit trails on all submissions, and biometric checks if requested by INEC.</div>
+          <div>By completing registration you consent to device fingerprinting, GPS logging at every login, and full audit trails on all submissions.</div>
         </div>
       </div>
       <div>
-        <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--ts)">🪪 Your Agent ID Tag</div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--ts)">Your Agent ID Tag</div>
         <div class="tag-prev" id="tag-prev">
           <div class="tag-av" id="tag-av" style="background:var(--g)">A</div>
           <div style="flex:1">
             <div class="tag-nm" id="tag-nm">Agent Name</div>
             <div class="tag-id" id="tag-id">ID: Pending</div>
             <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px">
-              <span class="tag-lga" id="tag-lga">📍 LGA</span>
-              <span class="tag-town" id="tag-town">🏘️ Town</span>
+              <span class="tag-lga" id="tag-lga">LGA</span>
+              <span class="tag-town" id="tag-town">Town</span>
             </div>
-            <div class="tag-unit" id="tag-unit">Unit: —</div>
+            <div class="tag-unit" id="tag-unit">Unit: &mdash;</div>
           </div>
-          <div class="tag-qr">🔲</div>
+          <div class="tag-qr">&#x1F532;</div>
         </div>
         <div style="background:var(--gl);border:1px solid rgba(0,176,79,.2);border-radius:var(--r10);padding:10px;margin-top:10px;font-size:10px;color:var(--gd)">
-          <i class="fas fa-check-circle"></i> Your Agent ID will be generated on submission. You will use it to log in and submit results.
+          <i class="fas fa-check-circle"></i> Your Agent ID will be generated on submission. Use it to log in and submit results.
         </div>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:14px">
       <button class="btn btn-s" onclick="rPrev(5)"><i class="fas fa-arrow-left"></i> Back</button>
-      <button class="btn btn-p" onclick="completeReg()"><i class="fas fa-user-check"></i> Complete Registration & Generate ID Tag</button>
+      <button class="btn btn-p" id="reg-submit-btn" onclick="completeReg()">
+        <i class="fas fa-user-check"></i> Complete Registration &amp; Generate ID Tag
+      </button>
     </div>
   </div>
-</div>
+
 </div>
 </div>
 <div id="toast-c"></div>
 </div>
-<script src="js/data/parties.js?v=202605301027"></script>
-<script src="js/data/polling-units.js?v=202605301027"></script>
-<script src="js/security.js?v=202605301027"></script>
-<script src="js/map.js?v=202605301027"></script>
-<script src="js/auth.js?v=202605301027"></script>
-<script src="js/results.js?v=202605301027"></script>
-<script src="js/app.js?v=202605301027"></script>
+
+<script src="js/data/parties.js"></script>
+<script src="js/data/polling-units.js"></script>
+<script src="js/security.js"></script>
+<script src="js/map.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/results.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

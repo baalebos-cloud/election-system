@@ -1,108 +1,77 @@
-// VERSION: 2026-05-30 10:27 — live refresh interval
 // ============================================================
-//  js/app.js
-//  Application bootstrap — shared utilities, screen router,
-//  clock, global event listeners, init
+//  js/app.js  —  Pure ES5
+//  Screen router, toast, clock, init
 // ============================================================
 
-// ── SCREEN NAVIGATION ─────────────────────────────────────
 function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
-  const target = document.getElementById(name + '-screen');
-  if (!target) return;
-  target.classList.add('active');
-  const idx  = ['dashboard', 'agent', 'results', 'security', 'reg'].indexOf(name);
-  const btns = document.querySelectorAll('.nb');
+  var screens = document.querySelectorAll('.screen');
+  var btns    = document.querySelectorAll('.nb');
+  var i;
+  for (i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+  for (i = 0; i < btns.length; i++)    btns[i].classList.remove('active');
+  var screen = document.getElementById(name + '-screen');
+  if (screen) screen.classList.add('active');
+  var names = ['dashboard','agent','results','security','reg'];
+  var idx   = names.indexOf(name);
   if (btns[idx]) btns[idx].classList.add('active');
   if (name === 'dashboard') initDashMap();
   if (name === 'results')   renderResults();
   if (name === 'security')  { renderSecLog(); updateSecStats(); }
 }
 
-// ── TOAST NOTIFICATIONS ───────────────────────────────────
-function toast(msg, type = 'ok') {
-  const icons = { ok: '✅', err: '❌', warn: '⚠️', info: 'ℹ️' };
-  const t = document.createElement('div');
+function toast(msg, type) {
+  type = type || 'ok';
+  var icons = { ok:'\u2705', err:'\u274C', warn:'\u26A0\uFE0F', info:'\u2139\uFE0F' };
+  var t = document.createElement('div');
   t.className = 'toast' + (type !== 'ok' ? ' ' + type : '');
-  t.innerHTML = '<span>' + (icons[type] || '✅') + '</span><span>' + msg + '</span>';
-  document.getElementById('toast-c').appendChild(t);
-  setTimeout(() => t.remove(), 4200);
+  t.innerHTML = '<span>' + (icons[type] || '\u2705') + '</span><span>' + msg + '</span>';
+  var tc = document.getElementById('toast-c');
+  if (tc) tc.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 4200);
 }
 
-// ── CLOCK ─────────────────────────────────────────────────
-setInterval(() => {
-  const el = document.getElementById('clk');
-  if (el) el.textContent = new Date().toTimeString().slice(0, 8);
+// Clock
+setInterval(function() {
+  var el = document.getElementById('clk');
+  if (el) el.textContent = new Date().toTimeString().slice(0,8);
 }, 1000);
 
-// ── CLOSE DROPDOWNS ON OUTSIDE CLICK ─────────────────────
-document.addEventListener('click', e => {
-  if (!e.target.closest('#r-pu-srch') && !e.target.closest('#r-pu-dd'))
-    document.getElementById('r-pu-dd')?.classList.remove('open');
-  if (!e.target.closest('#a-pu-srch') && !e.target.closest('#a-pu-dd'))
-    document.getElementById('a-pu-dd')?.classList.remove('open');
-});
-
-// ── DEVTOOLS DETERRENCE ───────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key))) {
-    SEC.log('warn', 'DevTools open attempt detected', 'Possible inspection of secure system');
+// Close dropdowns on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#r-pu-srch') && !e.target.closest('#r-pu-dd')) {
+    var dd = document.getElementById('r-pu-dd');
+    if (dd) dd.classList.remove('open');
+  }
+  if (!e.target.closest('#a-pu-srch') && !e.target.closest('#a-pu-dd')) {
+    var dd2 = document.getElementById('a-pu-dd');
+    if (dd2) dd2.classList.remove('open');
   }
 });
 
-// ── LIVE FEED SIMULATION ──────────────────────────────────
-// Refresh dashboard data every 10 seconds to pick up new localStorage submissions
-setInterval(() => {
-  try {
-    const ds = document.getElementById('dashboard-screen');
-    if (ds && ds.classList.contains('active')) {
-      loadRealResults();
-      refreshDash();
-    }
-    const rs = document.getElementById('results-screen');
-    if (rs && rs.classList.contains('active')) {
-      loadRealResults();
-      renderResults();
-    }
-  } catch(e) {}
-}, 10000);
+// Simulated live feed refresh
+var FEED_TIMER = setInterval(function() {
+  if (Math.random() > 0.65 && typeof MOCK_FEED !== 'undefined' && typeof ALL_POLLING_UNITS !== 'undefined') {
+    var u = ALL_POLLING_UNITS[Math.floor(Math.random() * ALL_POLLING_UNITS.length)];
+    MOCK_FEED.unshift({ u: u.code, lga: u.lga, d: 'Agent activity detected', age: 'fn' });
+    if (MOCK_FEED.length > 25) MOCK_FEED.pop();
+    var dash = document.getElementById('dashboard-screen');
+    if (dash && dash.classList.contains('active')) renderFeed();
+  }
+}, 9000);
 
-// ── INIT ──────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+// Page-aware init
+document.addEventListener('DOMContentLoaded', function() {
+  SEC.log('ok',   'System initialised', '2,195 polling units, 16 LGAs, Ekiti State');
+  SEC.log('ok',   'Security monitoring online', 'Brute-force, rate limiting, anomaly detection');
+  SEC.log('info', 'Audit logging started', 'All events timestamped and chain-hashed');
+  updateThreatBanner();
+  updateSecStats();
 
-  // Safely log init — SEC may not have all DOM elements on every page
-  try { SEC.log('ok', 'System initialised', ALL_POLLING_UNITS.length + ' polling units · 16 LGAs'); } catch(e) {}
-  try { SEC.log('ok', 'Encryption layer active', 'FNV-1a hash chaining · Session token auth'); } catch(e) {}
-  try { SEC.log('ok', 'Security monitoring online', 'Brute-force · Rate limiting · Honeypots'); } catch(e) {}
-  try { updateThreatBanner(); } catch(e) {}
-  try { updateSecStats(); } catch(e) {}
-
-  // Pre-fill login form if redirected from register.html
-  try {
-    const pendingId = localStorage.getItem('ekiti_pending_login');
-    if (pendingId) {
-      const loginField = document.getElementById('l-id');
-      if (loginField) {
-        loginField.value = pendingId;
-        localStorage.removeItem('ekiti_pending_login');
-        setTimeout(() => {
-          toast('Registration complete! Agent ID: ' + pendingId + ' — enter your PIN to login', 'ok');
-        }, 400);
-      }
-    }
-  } catch(e) {}
-
-  // Page-specific init — each in its own try so one failure cannot block others
-  try {
-    const activeScreen = document.querySelector('.screen.active');
-    if (activeScreen) {
-      const id = activeScreen.id;
-      if (id === 'dashboard-screen') { seedMockData(); loadRealResults(); refreshDash(); initDashMap(); }
-      if (id === 'results-screen')   { seedMockData(); loadRealResults(); renderResults(); }
-      if (id === 'security-screen')  { seedMockData(); renderSecLog(); updateSecStats(); }
-      // reg-screen and agent-screen need no special init
-    }
-  } catch(e) { console.warn('Page init error:', e.message); }
-
+  var activeScreen = document.querySelector('.screen.active');
+  if (activeScreen) {
+    var id = activeScreen.id;
+    if (id === 'dashboard-screen') { seedMockData(); refreshDash(); initDashMap(); }
+    if (id === 'results-screen')   { seedMockData(); renderResults(); }
+    if (id === 'security-screen')  { seedMockData(); renderSecLog(); updateSecStats(); }
+  }
 });

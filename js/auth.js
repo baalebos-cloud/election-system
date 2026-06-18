@@ -330,51 +330,54 @@ function openRegDD() {
 }
 
 function searchRegPU() {
-  var lga = document.getElementById('r-lga').value;
-  var q   = document.getElementById('r-pu-srch').value.toLowerCase().trim();
-  var dd  = document.getElementById('r-pu-dd');
-  if (!lga && !q) { dd.classList.remove('open'); return; }
-  var list = lga ? ALL_POLLING_UNITS.filter(function(u) { return u.lga === lga; }) : ALL_POLLING_UNITS;
-  if (q) list = list.filter(function(u) {
+  var lgaEl = document.getElementById('r-lga');
+  var srch  = document.getElementById('r-pu-srch');
+  var dd    = document.getElementById('r-pu-dd');
+  var lga   = lgaEl ? lgaEl.value : '';
+  var q     = srch  ? srch.value.toLowerCase().trim() : '';
+  var list  = ALL_POLLING_UNITS;
+  var i, u, safe, html;
+
+  if (!lga && !q) { if (dd) dd.classList.remove('open'); return; }
+  if (lga) list = list.filter(function(u){ return u.lga === lga; });
+  if (q)   list = list.filter(function(u){
     return u.code.toLowerCase().indexOf(q) > -1 ||
-           u.lga.toLowerCase().indexOf(q)  > -1 ||
-           (u.ward && u.ward.toLowerCase().indexOf(q) > -1);
+           u.name.toLowerCase().indexOf(q) > -1 ||
+           u.ward.toLowerCase().indexOf(q) > -1;
   });
+
   if (!list.length) {
-    dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found</div>';
-    dd.classList.add('open');
+    if (dd) { dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found</div>'; dd.classList.add('open'); }
     return;
   }
-  var html = '', i, u;
+
+  html = '';
   for (i = 0; i < Math.min(list.length, 60); i++) {
-    u = list[i];
-    html += '<div class="pu-opt" onclick="selectRegPU(\'' + u.code + '\')">' +
+    u    = list[i];
+    safe = JSON.stringify(u).replace(/'/g, "\\'");
+    html += '<div class="pu-opt" onclick=\'selectRegPU(' + safe + ')\'>' +
       '<div class="pu-code">' + u.code + '</div>' +
-      '<div class="pu-name">' + u.lga + (u.ward ? ' \u2014 ' + u.ward : '') + '</div>' +
-      '<div class="pu-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div>' +
-      '</div>';
+      '<div class="pu-name">' + u.name + '</div>' +
+      '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
   }
-  dd.innerHTML = html;
-  dd.classList.add('open');
+  if (dd) { dd.innerHTML = html; dd.classList.add('open'); }
 }
 
-function selectRegPU(code) {
-  var u = ALL_POLLING_UNITS.filter(function(x) { return x.code === code; })[0];
-  if (!u) return;
+function selectRegPU(u) {
   regPU = u;
   var s = document.getElementById('r-pu-srch');
   var d = document.getElementById('r-pu-dd');
   var w = document.getElementById('r-ward');
   var e = document.getElementById('r-pu-sel');
-  if (s) s.value = u.code + ' \u2014 ' + u.lga + (u.ward ? ' \u2014 ' + u.ward : '');
+  if (s) s.value = u.code + ' \u2014 ' + u.name;
   if (d) d.classList.remove('open');
-  if (w) w.value = u.ward || '';
+  if (w) w.value = u.ward;
   if (e) {
     e.style.display = 'block';
     e.innerHTML = '<div class="pu-sel">' +
       '<div class="pu-sel-code">' + u.code + '</div>' +
-      '<div class="pu-sel-name">' + u.lga + (u.ward ? ' \u2014 ' + u.ward : '') + '</div>' +
-      '<div class="pu-sel-meta">' + u.lat.toFixed(4) + ', ' + u.lng.toFixed(4) + '</div></div>';
+      '<div class="pu-sel-name">' + u.name + '</div>' +
+      '<div class="pu-sel-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
   }
   updateTag();
 }

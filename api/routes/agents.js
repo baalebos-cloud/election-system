@@ -5,21 +5,19 @@
 //  GET  /api/agents/:id        — fetch agent profile (admin)
 // ============================================================
 
-const express  = require('express');
-const bcrypt   = require('bcrypt');
-const router   = express.Router();
+const express = require('express');
+const bcrypt = require('bcrypt');
+const router = express.Router();
+const db = require('../db');
 const { generateToken, verifyToken, requireAdmin } = require('../middleware/auth');
-
-// In production replace with real DB queries
-// e.g. const db = require('../db');
 
 // ── POST /api/agents/register ─────────────────────────────
 router.post('/register', async (req, res) => {
   try {
-    const { agentId, name, party, lga, town, unit, ward, pin } = req.body;
+    const { name, party, lga, town, unit, ward, pin, securityQuestion, securityAnswer } = req.body;
 
     // Validate required fields
-    const required = { agentId, name, party, lga, town, unit, ward, pin };
+    const required = { name, party, lga, town, unit, ward, pin };
     for (const [k, v] of Object.entries(required)) {
       if (!v || String(v).trim() === '')
         return res.status(400).json({ error: `Field "${k}" is required` });
@@ -28,14 +26,21 @@ router.post('/register', async (req, res) => {
     if (pin.length < 6)
       return res.status(400).json({ error: 'PIN must be at least 6 characters' });
 
-    // Hash PIN before storing
-    const pinHash = await bcrypt.hash(pin, 12);
+    // Generate agent ID from party and LGA
+    const countResult = await db.query('SELECT COUNT(*) FROM agents WHERE lga = $1', [lga]);
+    const count = parseInt(countResult.rows[0].count) + 1;
+    const lgaCode = unit.split('/')[1] || 'XX';
+    const agentId = `EK-${party}-${lgaCode}-${String(count).padStart(4, '0')}`;
 
-    // TODO: insert into DB
-    // await db.query(
-    //   'INSERT INTO agents (id, name, party, lga, town, unit, ward, pin_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-    //   [agentId, name, party, lga, town, unit, ward, pinHash]
-    // );
+    // Hash PIN and security answer
+    const pinHash = await bcrypt.hash(pin, 12);
+    const securityAHash = securityAnswer ? await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10) : null;
+
+    await db.query(
+      `INSERT INTO agents (id, name, party, lga, town, unit_code, ward, pin_hash, security_q, security_a_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [agentId, name, party, lga, town, unit, ward, pinHash, securityQuestion || null, securityAHash]
+    );
 
     res.status(201).json({
       success: true,
@@ -43,8 +48,8 @@ router.post('/register', async (req, res) => {
       message: 'Agent registered successfully',
     });
   } catch (err) {
-    if (err.code === '23505')   // Postgres unique violation
-      return res.status(409).json({ error: 'Agent ID already registered' });
+    if (err.code === '23505') // Postgres unique violation
+      return res.status(409).json({ error: 'Agent already registered for this unit' });
     console.error('[register]', err.message);
     res.status(500).json({ error: 'Registration failed' });
   }
@@ -57,18 +62,36 @@ router.post('/login', async (req, res) => {
     if (!agentId || !pin)
       return res.status(400).json({ error: 'agentId and pin are required' });
 
-    // TODO: fetch from DB
-    // const result = await db.query('SELECT * FROM agents WHERE id = $1', [agentId]);
-    // const agent  = result.rows[0];
-    // if (!agent) return res.status(401).json({ error: 'Invalid credentials' });
-    // const match  = await bcrypt.compare(pin, agent.pin_hash);
-    // if (!match)  return res.status(401).json({ error: 'Invalid credentials' });
+    // Fetch agent from database
+    const result = await db.query('SELECT * FROM agents WHERE id = $1 AND is_active = TRUE', [agentId]);
+    const agent = result.rows[0];
 
-    // Placeholder success for demo
-    const agent = { id: agentId, party: 'APC', lga: 'Ado Ekiti', unit: 'EKS/AD/0001', ward: 'Adebayo' };
+    if (!agent)
+      return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Compare PIN hash
+    const match = await bcrypt.compare(pin, agent.pin_hash);
+    if (!match)
+      return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Update last login timestamp
+    await db.query('UPDATE agents SET last_login = NOW() WHERE id = $1', [agentId]);
+
     const token = generateToken(agent);
 
-    res.json({ success: true, token, agent });
+    res.json({
+      success: true,
+      token,
+      agent: {
+        id: agent.id,
+        name: agent.name,
+        party: agent.party,
+        lga: agent.lga,
+        town: agent.town,
+        unit: agent.unit_code,
+        ward: agent.ward,
+      },
+    });
   } catch (err) {
     console.error('[login]', err.message);
     res.status(500).json({ error: 'Login failed' });
@@ -78,9 +101,15 @@ router.post('/login', async (req, res) => {
 // ── GET /api/agents/:id  (admin only) ─────────────────────
 router.get('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
-    // TODO: const result = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
-    res.json({ agentId: req.params.id, message: 'DB query placeholder' });
+    const result = await db.query(
+      'SELECT id, name, party, lga, town, unit_code, ward, registered_at, last_login, is_active FROM agents WHERE id = $1',
+      [req.params.id]
+    );
+    if (!result.rows.length)
+      return res.status(404).json({ error: 'Agent not found' });
+    res.json(result.rows[0]);
   } catch (err) {
+    console.error('[get agent]', err.message);
     res.status(500).json({ error: 'Failed to fetch agent' });
   }
 });

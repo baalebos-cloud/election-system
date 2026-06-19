@@ -2,6 +2,7 @@
 //  js/results.js  —  Pure ES5
 //  PU picker, results form, evidence upload, submit,
 //  dashboard render, live results screen, security screen
+//  FIXED: Dropdown selection for polling units with special chars
 // ============================================================
 
 var reportedResults = {};
@@ -18,6 +19,17 @@ var MOCK_FEED = [
   {u:'EKS/EW/0001',lga:'EKITI WEST',         d:'Results transmitted \u2014 791 votes counted',       age:'fo'}
 ];
 var feedBase = Date.now();
+
+// ── HTML ESCAPE HELPER ────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ── SEED DEMO DATA ────────────────────────────────────────
 function seedMockData() {
@@ -54,7 +66,7 @@ function seedMockData() {
   }
 }
 
-// ── POLLING UNIT PICKER ───────────────────────────────────
+// ── POLLING UNIT PICKER (FIXED) ───────────────────────────
 function filterAPU() {
   var lgaEl  = document.getElementById('a-lga-filt');
   var srchEl = document.getElementById('a-pu-srch');
@@ -65,7 +77,7 @@ function filterAPU() {
   var lga  = lgaEl.value;
   var q    = srchEl.value.toLowerCase().trim();
   var list = ALL_POLLING_UNITS;
-  var i, u, safe, html;
+  var i, u, html, idx;
 
   if (lga) list = list.filter(function(u){ return u.lga === lga; });
   if (q)   list = list.filter(function(u){
@@ -84,12 +96,12 @@ function filterAPU() {
 
   html = '';
   for (i = 0; i < Math.min(list.length, 80); i++) {
-    u    = list[i];
-    safe = JSON.stringify(u).replace(/'/g, "\\'");
-    html += '<div class="pu-opt" onclick=\'selAPU(' + safe + ')\'>' +
-      '<div class="pu-code">' + u.code + '</div>' +
-      '<div class="pu-name">' + u.name + '</div>' +
-      '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
+    u = list[i];
+    idx = ALL_POLLING_UNITS.indexOf(u);
+    html += '<div class="pu-opt" data-pu-index="' + idx + '">' +
+      '<div class="pu-code">' + escapeHtml(u.code) + '</div>' +
+      '<div class="pu-name">' + escapeHtml(u.name) + '</div>' +
+      '<div class="pu-meta">' + escapeHtml(u.ward) + ' &middot; ' + escapeHtml(u.lga) + '</div></div>';
   }
   if (list.length > 80) {
     html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">&hellip; and ' + (list.length - 80) + ' more \u2014 type to narrow</div>';
@@ -103,14 +115,14 @@ function openAPUDD() {
   var dd  = document.getElementById('a-pu-dd');
   var list = lga ? ALL_POLLING_UNITS.filter(function(u){ return u.lga === lga; }) : ALL_POLLING_UNITS;
   var show = list.slice(0, 80);
-  var html = '', i, u, safe;
+  var html = '', i, u, idx;
   for (i = 0; i < show.length; i++) {
-    u    = show[i];
-    safe = JSON.stringify(u).replace(/'/g, "\\'");
-    html += '<div class="pu-opt" onclick=\'selAPU(' + safe + ')\'>' +
-      '<div class="pu-code">' + u.code + '</div>' +
-      '<div class="pu-name">' + u.name + '</div>' +
-      '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
+    u = show[i];
+    idx = ALL_POLLING_UNITS.indexOf(u);
+    html += '<div class="pu-opt" data-pu-index="' + idx + '">' +
+      '<div class="pu-code">' + escapeHtml(u.code) + '</div>' +
+      '<div class="pu-name">' + escapeHtml(u.name) + '</div>' +
+      '<div class="pu-meta">' + escapeHtml(u.ward) + ' &middot; ' + escapeHtml(u.lga) + '</div></div>';
   }
   if (!lga) html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">Select an LGA or type to search all 2,195 units</div>';
   if (dd) { dd.innerHTML = html; dd.classList.add('open'); }
@@ -139,11 +151,33 @@ function renderAgentPUSel(u) {
   if (!el) return;
   el.style.display = 'block';
   el.innerHTML = '<div class="pu-sel">' +
-    '<div class="pu-sel-code">' + u.code + '</div>' +
-    '<div class="pu-sel-name">' + u.name + '</div>' +
-    '<div class="pu-sel-meta">' + u.ward + ' &middot; ' + u.lga + ' &middot; ' + u.lat.toFixed(5) + ', ' + u.lng.toFixed(5) + '</div>' +
+    '<div class="pu-sel-code">' + escapeHtml(u.code) + '</div>' +
+    '<div class="pu-sel-name">' + escapeHtml(u.name) + '</div>' +
+    '<div class="pu-sel-meta">' + escapeHtml(u.ward) + ' &middot; ' + escapeHtml(u.lga) + ' &middot; ' + u.lat.toFixed(5) + ', ' + u.lng.toFixed(5) + '</div>' +
     '</div>';
 }
+
+// ── EVENT DELEGATION FOR AGENT PORTAL DROPDOWN ────────────
+document.addEventListener('click', function(e) {
+  // Handle agent portal polling unit selection
+  var puOpt = e.target.closest('.pu-opt[data-pu-index]');
+  if (puOpt) {
+    var puDd = puOpt.closest('#a-pu-dd');
+    if (puDd) {
+      var puIdx = parseInt(puOpt.getAttribute('data-pu-index'), 10);
+      if (!isNaN(puIdx) && ALL_POLLING_UNITS[puIdx]) {
+        selAPU(ALL_POLLING_UNITS[puIdx]);
+      }
+      return;
+    }
+  }
+  
+  // Close agent portal dropdown on outside click
+  if (!e.target.closest('#a-pu-srch') && !e.target.closest('#a-pu-dd')) {
+    var add = document.getElementById('a-pu-dd');
+    if (add) add.classList.remove('open');
+  }
+});
 
 // ── RESULTS FORM ──────────────────────────────────────────
 function buildResultsForm() {
@@ -513,16 +547,16 @@ function renderUnitCards(lgaFilter) {
         '<div class="mbt"><div class="mbf" style="width:' + pct + '%;background:' + p.color + '"></div></div>' +
         '<div class="mv">' + v.toLocaleString() + '</div></div>';
     }
-    agRow = u.agentId ? '<div style="font-size:8px;color:var(--tm);margin-top:3px;font-family:\'JetBrains Mono\',monospace">Agent: ' + u.agentId + '</div>' : '';
-    hRow  = u.hash    ? '<div style="font-size:8px;color:var(--tm);margin-top:1px;font-family:\'JetBrains Mono\',monospace">Hash: '  + u.hash    + '</div>' : '';
+    agRow = u.agentId ? '<div style="font-size:8px;color:var(--tm);margin-top:3px;font-family:\'JetBrains Mono\',monospace">Agent: ' + escapeHtml(u.agentId) + '</div>' : '';
+    hRow  = u.hash    ? '<div style="font-size:8px;color:var(--tm);margin-top:1px;font-family:\'JetBrains Mono\',monospace">Hash: '  + escapeHtml(u.hash)    + '</div>' : '';
 
     card = document.createElement('div');
     card.className = 'ruc';
     card.innerHTML =
       '<div class="ruc-h">' +
-        '<div><div class="ruc-code">' + u.code + '</div>' +
-        '<div class="ruc-nm">' + u.name + ' &middot; ' + (u.ward||'') + '</div>' +
-        '<div class="ruc-nm" style="color:var(--blue)">' + u.lga + '</div></div>' +
+        '<div><div class="ruc-code">' + escapeHtml(u.code) + '</div>' +
+        '<div class="ruc-nm">' + escapeHtml(u.name) + ' &middot; ' + escapeHtml(u.ward||'') + '</div>' +
+        '<div class="ruc-nm" style="color:var(--blue)">' + escapeHtml(u.lga) + '</div></div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
           '<div class="ruc-time">' + (u.time||'') + '</div>' + evHtml +
         '</div>' +
@@ -557,7 +591,7 @@ function renderSecLog() {
     cls = e.type==='crit'?'ev-c':e.type==='warn'?'ev-w':e.type==='ok'?'ev-k':'ev-i';
     ic  = e.type==='crit'?'\u26D4':e.type==='warn'?'\u26A0\uFE0F':e.type==='ok'?'\u2705':'\u2139\uFE0F';
     html += '<div class="sev"><div class="sev-ic ' + cls + '">' + ic + '</div>' +
-      '<div class="sev-msg">' + e.msg + (e.detail ? '<br><span style="font-size:8px;opacity:.7">' + e.detail + '</span>' : '') + '</div>' +
+      '<div class="sev-msg">' + escapeHtml(e.msg) + (e.detail ? '<br><span style="font-size:8px;opacity:.7">' + escapeHtml(e.detail) + '</span>' : '') + '</div>' +
       '<div class="sev-ts">' + e.time + '</div></div>';
   }
   el.innerHTML = html;
@@ -587,7 +621,7 @@ function renderBlockedList() {
   var html = '', i, s;
   for (i = 0; i < SEC.blockedSessions.length; i++) {
     s = SEC.blockedSessions[i];
-    html += '<div class="ip-item"><div><div class="ip-addr">' + s.addr + '</div><div class="ip-rsn">' + s.reason + '</div></div><div class="ip-t">' + s.time + '</div></div>';
+    html += '<div class="ip-item"><div><div class="ip-addr">' + escapeHtml(s.addr) + '</div><div class="ip-rsn">' + escapeHtml(s.reason) + '</div></div><div class="ip-t">' + s.time + '</div></div>';
   }
   el.innerHTML = html;
 }

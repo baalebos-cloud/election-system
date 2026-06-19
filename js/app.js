@@ -1,6 +1,7 @@
 // ============================================================
 //  js/app.js  —  Pure ES5
 //  Screen router, toast, clock, init
+//  LIVE DATA: No more mock data - fetches from API
 // ============================================================
 
 function showScreen(name) {
@@ -14,8 +15,8 @@ function showScreen(name) {
   var names = ['dashboard','agent','results','security','reg'];
   var idx   = names.indexOf(name);
   if (btns[idx]) btns[idx].classList.add('active');
-  if (name === 'dashboard') initDashMap();
-  if (name === 'results')   renderResults();
+  if (name === 'dashboard') { refreshDash(); initDashMap(); }
+  if (name === 'results')   { fetchLiveResults(); }
   if (name === 'security')  { renderSecLog(); updateSecStats(); }
 }
 
@@ -48,18 +49,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Simulated live feed refresh
-var FEED_TIMER = setInterval(function() {
-  if (Math.random() > 0.65 && typeof MOCK_FEED !== 'undefined' && typeof ALL_POLLING_UNITS !== 'undefined') {
-    var u = ALL_POLLING_UNITS[Math.floor(Math.random() * ALL_POLLING_UNITS.length)];
-    MOCK_FEED.unshift({ u: u.code, lga: u.lga, d: 'Agent activity detected', age: 'fn' });
-    if (MOCK_FEED.length > 25) MOCK_FEED.pop();
-    var dash = document.getElementById('dashboard-screen');
-    if (dash && dash.classList.contains('active')) renderFeed();
-  }
-}, 9000);
-
-// Page-aware init
+// Page-aware init — LIVE DATA (no more mock data)
 document.addEventListener('DOMContentLoaded', function() {
   SEC.log('ok',   'System initialised', '2,195 polling units, 16 LGAs, Ekiti State');
   SEC.log('ok',   'Security monitoring online', 'Brute-force, rate limiting, anomaly detection');
@@ -70,8 +60,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var activeScreen = document.querySelector('.screen.active');
   if (activeScreen) {
     var id = activeScreen.id;
-    if (id === 'dashboard-screen') { seedMockData(); refreshDash(); initDashMap(); }
-    if (id === 'results-screen')   { seedMockData(); renderResults(); }
-    if (id === 'security-screen')  { seedMockData(); renderSecLog(); updateSecStats(); }
+    if (id === 'dashboard-screen') { refreshDash(); initDashMap(); }
+    if (id === 'results-screen')   { fetchLiveResults(); }
+    if (id === 'security-screen')  { renderSecLog(); updateSecStats(); }
   }
 });

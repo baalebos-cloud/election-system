@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "js/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/agents/register", "dest": "/api/agents/register.js" },
+    { "src": "/api/agents/login", "dest": "/api/agents/login.js" },
+    { "src": "/api/agents/(.*)", "dest": "/api/agents/[id].js" },
+    { "src": "/api/results/submit", "dest": "/api/results/submit.js" },
+    { "src": "/api/results/live", "dest": "/api/results/live.js" },
+    { "src": "/api/results/(.*)", "dest": "/api/results/[unit].js" },
+    { "src": "/api/health", "dest": "/api/health.js" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

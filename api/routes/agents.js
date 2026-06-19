@@ -48,7 +48,7 @@ router.post('/register', async (req, res) => {
       message: 'Agent registered successfully',
     });
   } catch (err) {
-    if (err.code === '23505') // Postgres unique violation
+    if (err.code === '23505')
       return res.status(409).json({ error: 'Agent already registered for this unit' });
     console.error('[register]', err.message);
     res.status(500).json({ error: 'Registration failed' });

@@ -1,16 +1,90 @@
-# Environment
+# ============================================================
+#  .gitignore — INEC Ekiti Election System
+# ============================================================
+
+# ── Environment Variables (CRITICAL - never commit these!) ──
 .env
 .env.*
+.env.local
+.env.development
+.env.production
 !.env.example
 
-# Node
+# ── Node.js ─────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# OS
+# ── Logs ────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ── OS Generated Files ──────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Build output
+# ── IDE / Editor ────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+
+# ── Build Output ────────────────────────────────────────────
 dist/
 build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# ── Vercel ──────────────────────────────────────────────────
+.vercel/
+
+# ── Test & Coverage ─────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+
+# ── Temporary Files ─────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+
+# ── Database ────────────────────────────────────────────────
+*.sql.backup
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+
+# ── Uploaded Files (if storing locally) ─────────────────────
+uploads/
+evidence/
+
+# ── Secrets & Certificates ──────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/

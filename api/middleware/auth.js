@@ -3,20 +3,17 @@
 //  JWT verification + role-based access control
 // ============================================================
 
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-// CRITICAL: Fail fast if JWT_SECRET is not set in production
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('❌ FATAL: JWT_SECRET must be set in production');
-  process.exit(1);
-}
+// Get JWT secret from environment or generate one (with warning)
+let JWT_SECRET = process.env.JWT_SECRET;
 
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
-
-// Warn in development if using auto-generated secret
-if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'production') {
-  console.warn('⚠️  WARNING: Using auto-generated JWT_SECRET. Set JWT_SECRET env var for consistent sessions.');
+if (!JWT_SECRET) {
+  JWT_SECRET = crypto.randomBytes(32).toString('hex');
+  console.warn('⚠️  WARNING: JWT_SECRET not set in .env file');
+  console.warn('   Using auto-generated secret. Sessions will reset on server restart.');
 }
 
 function verifyToken(req, res, next) {

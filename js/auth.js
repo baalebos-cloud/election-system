@@ -1,6 +1,7 @@
 // ============================================================
 //  js/auth.js  —  Pure ES5
 //  Login, logout, registration — API-BASED (NO HARDCODED CREDS)
+//  FIXED: Dropdown selection for polling units with special chars
 // ============================================================
 
 // API base URL
@@ -11,6 +12,17 @@ var agentPU         = null;
 var regPU           = null;
 var authToken       = null;
 var evidenceDataUrl = null;
+
+// ── HTML ESCAPE HELPER ────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ── DOTS ─────────────────────────────────────────────────
 function updateDots() {
@@ -368,7 +380,7 @@ function rNext(step) {
 
 function rPrev(step) { setRegStep(step - 1); }
 
-// ── REGISTRATION POLLING UNIT SEARCH ──────────────────────
+// ── REGISTRATION POLLING UNIT SEARCH (FIXED) ──────────────
 function filterRegUnits() {
   regPU = null;
   var s = document.getElementById('r-pu-srch');
@@ -400,7 +412,7 @@ function searchRegPU() {
   var lga   = lgaEl ? lgaEl.value : '';
   var q     = srch  ? srch.value.toLowerCase().trim() : '';
   var list  = ALL_POLLING_UNITS;
-  var i, u, safe, html;
+  var i, u, html, idx;
 
   if (!lga && !q) { if (dd) dd.classList.remove('open'); return; }
   if (lga) list = list.filter(function(u){ return u.lga === lga; });
@@ -411,18 +423,24 @@ function searchRegPU() {
   });
 
   if (!list.length) {
-    if (dd) { dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found</div>'; dd.classList.add('open'); }
+    if (dd) { 
+      dd.innerHTML = '<div class="pu-opt" style="color:var(--tm);font-style:italic">No units found</div>'; 
+      dd.classList.add('open'); 
+    }
     return;
   }
 
   html = '';
   for (i = 0; i < Math.min(list.length, 60); i++) {
-    u    = list[i];
-    safe = JSON.stringify(u).replace(/'/g, "\\'");
-    html += '<div class="pu-opt" onclick=\'selectRegPU(' + safe + ')\'>' +
-      '<div class="pu-code">' + u.code + '</div>' +
-      '<div class="pu-name">' + u.name + '</div>' +
-      '<div class="pu-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
+    u = list[i];
+    idx = ALL_POLLING_UNITS.indexOf(u);
+    html += '<div class="pu-opt" data-reg-pu-index="' + idx + '">' +
+      '<div class="pu-code">' + escapeHtml(u.code) + '</div>' +
+      '<div class="pu-name">' + escapeHtml(u.name) + '</div>' +
+      '<div class="pu-meta">' + escapeHtml(u.ward) + ' &middot; ' + escapeHtml(u.lga) + '</div></div>';
+  }
+  if (list.length > 60) {
+    html += '<div class="pu-opt" style="color:var(--tm);font-style:italic">&hellip; and ' + (list.length - 60) + ' more \u2014 type to narrow</div>';
   }
   if (dd) { dd.innerHTML = html; dd.classList.add('open'); }
 }
@@ -439,9 +457,9 @@ function selectRegPU(u) {
   if (e) {
     e.style.display = 'block';
     e.innerHTML = '<div class="pu-sel">' +
-      '<div class="pu-sel-code">' + u.code + '</div>' +
-      '<div class="pu-sel-name">' + u.name + '</div>' +
-      '<div class="pu-sel-meta">' + u.ward + ' &middot; ' + u.lga + '</div></div>';
+      '<div class="pu-sel-code">' + escapeHtml(u.code) + '</div>' +
+      '<div class="pu-sel-name">' + escapeHtml(u.name) + '</div>' +
+      '<div class="pu-sel-meta">' + escapeHtml(u.ward) + ' &middot; ' + escapeHtml(u.lga) + '</div></div>';
   }
   updateTag();
 }
@@ -620,3 +638,25 @@ function completeReg() {
     toast('Connection error \u2014 check your network', 'err');
   });
 }
+
+// ── EVENT DELEGATION FOR REGISTRATION DROPDOWN ────────────
+document.addEventListener('click', function(e) {
+  // Handle registration polling unit selection
+  var regOpt = e.target.closest('.pu-opt[data-reg-pu-index]');
+  if (regOpt) {
+    var regDd = regOpt.closest('#r-pu-dd');
+    if (regDd) {
+      var regIdx = parseInt(regOpt.getAttribute('data-reg-pu-index'), 10);
+      if (!isNaN(regIdx) && ALL_POLLING_UNITS[regIdx]) {
+        selectRegPU(ALL_POLLING_UNITS[regIdx]);
+      }
+      return;
+    }
+  }
+  
+  // Close registration dropdown on outside click
+  if (!e.target.closest('#r-pu-srch') && !e.target.closest('#r-pu-dd')) {
+    var rdd = document.getElementById('r-pu-dd');
+    if (rdd) rdd.classList.remove('open');
+  }
+});

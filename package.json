@@ -4,12 +4,13 @@
   "description": "INEC Ekiti State Secure Election Results System",
   "main": "api/server.js",
   "scripts": {
-    "start":   "node api/server.js",
-    "dev":     "nodemon api/server.js",
+    "start": "node api/server.js",
+    "dev": "nodemon api/server.js",
     "db:init": "psql -d ekiti_election -f database/schema.sql",
     "db:seed": "psql -d ekiti_election -f database/seed.sql"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

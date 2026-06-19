@@ -1,19 +1,15 @@
 // ============================================================
 //  js/auth.js  —  Pure ES5
-//  Login, logout, registration
+//  Login, logout, registration — API-BASED (NO HARDCODED CREDS)
 // ============================================================
 
-var AGENTS = {
-  'EK-APC-AD-0001': { pin:'secure1', name:'Taiwo Adeyemi',    party:'APC',  lga:'ADO-EKITI',  town:'Ado Central',   unit:'EKS/AD/0001', ward:"ADO 'A'" },
-  'EK-PDP-EE-0002': { pin:'pass123', name:'Funmi Olaoluwa',   party:'PDP',  lga:'EKITI EAST', town:'Omuo Oke',      unit:'EKS/EE/0001', ward:'OMUO OKE I' },
-  'EK-LP-IK-0003':  { pin:'labour7', name:'Kehinde Adesanya', party:'LP',   lga:'IKERE',      town:'Ikere Central', unit:'EKS/IK/0001', ward:'ATIBA/AAFIN' },
-  'EK-NNPP-IJ-0004':{ pin:'nnpp24',  name:'Bola Ogunleye',    party:'NNPP', lga:'IJERO',      town:'Ijero-Ekiti',   unit:'EKS/IJ/0001', ward:'IJERO WARD A' }
-};
+// API base URL
+var API_BASE = window.location.origin;
 
-var currentAgent  = null;
-var agentPU       = null;
-var regPU         = null;
-var regAgentCount = 4;
+var currentAgent    = null;
+var agentPU         = null;
+var regPU           = null;
+var authToken       = null;
 var evidenceDataUrl = null;
 
 // ── DOTS ─────────────────────────────────────────────────
@@ -72,7 +68,56 @@ function showCaptchaField() {
   SEC.captchaActive = true;
 }
 
-// ── LOGIN ─────────────────────────────────────────────────
+// ── HELPER FUNCTIONS ──────────────────────────────────────
+function shakeLoginBox() {
+  var lb = document.getElementById('login-box');
+  if (lb) {
+    lb.style.animation = 'shake .4s';
+    setTimeout(function() { lb.style.animation = ''; }, 500);
+  }
+}
+
+function showSecurityBlock(reason) {
+  var sb = document.getElementById('sec-block');
+  var sm = document.getElementById('sec-block-msg');
+  var sh = document.getElementById('sec-block-hash');
+  if (sb) sb.classList.add('active');
+  if (sm) sm.textContent = reason + '. Session flagged.';
+  if (sh) sh.textContent = 'INCIDENT-' + SEC.hash({ r: reason, ts: Date.now() });
+  toast('Security violation detected', 'err');
+}
+
+function showAgentPortal() {
+  var overlay = document.getElementById('login-overlay');
+  var asb     = document.getElementById('asb');
+  var amain   = document.getElementById('amain');
+  if (overlay) overlay.style.display = 'none';
+  if (asb)     asb.style.display     = 'flex';
+  if (amain)   amain.style.display   = 'flex';
+  buildResultsForm();
+}
+
+function setupPollingUnit(agent) {
+  agentPU = null;
+  for (var i = 0; i < ALL_POLLING_UNITS.length; i++) {
+    if (ALL_POLLING_UNITS[i].code === agent.unit) {
+      agentPU = ALL_POLLING_UNITS[i];
+      break;
+    }
+  }
+  if (agentPU) {
+    var lf = document.getElementById('a-lga-filt');
+    var ps = document.getElementById('a-pu-srch');
+    var uh = document.getElementById('unit-hdr');
+    if (lf) lf.value = agent.lga;
+    if (ps) ps.value = agentPU.code + ' \u2014 ' + agentPU.name;
+    if (uh) uh.textContent = agentPU.code;
+    renderAgentPUSel(agentPU);
+    filterAPU();
+  }
+}
+
+// ── LOGIN (API-based) ─────────────────────────────────────
 function doLogin() {
   var idEl  = document.getElementById('l-id');
   var pinEl = document.getElementById('l-pin');
@@ -89,6 +134,7 @@ function doLogin() {
     return;
   }
 
+  // Validate CAPTCHA if active
   if (SEC.captchaActive) {
     var ci  = document.getElementById('captcha-inp');
     var ans = ci ? ci.value.trim() : '';
@@ -105,87 +151,96 @@ function doLogin() {
     if (cs) cs.style.display = 'none';
   }
 
+  // Client-side anomaly detection
   var anomaly = SEC.detectAnomaly(id, pin);
   if (!anomaly.ok) {
     SEC.attempts++;
     updateDots();
     SEC.log('crit', 'Anomaly: ' + anomaly.reason, id.slice(0, 20));
-    var lb = document.getElementById('login-box');
-    if (lb) { lb.style.animation = 'shake .4s'; setTimeout(function(){ lb.style.animation = ''; }, 500); }
-    var sb = document.getElementById('sec-block');
-    var sm = document.getElementById('sec-block-msg');
-    var sh = document.getElementById('sec-block-hash');
-    if (sb) sb.classList.add('active');
-    if (sm) sm.textContent = anomaly.reason + '. Session flagged.';
-    if (sh) sh.textContent = 'INCIDENT-' + SEC.hash({ r: anomaly.reason, ts: Date.now() });
-    toast('Security violation detected', 'err');
+    shakeLoginBox();
+    showSecurityBlock(anomaly.reason);
     return;
   }
 
-  var agent = AGENTS[id];
-  if (!agent || agent.pin !== pin) {
-    SEC.attempts++;
+  // Validate inputs
+  if (!id || !pin) {
+    toast('Enter your Agent ID and PIN', 'warn');
+    return;
+  }
+
+  // Disable button during request
+  var loginBtn = document.querySelector('#login-box .btn-p');
+  if (loginBtn) {
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+  }
+
+  // Call API
+  fetch(API_BASE + '/api/agents/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId: id, pin: pin })
+  })
+  .then(function(response) {
+    return response.json().then(function(data) {
+      return { status: response.status, data: data };
+    });
+  })
+  .then(function(result) {
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login Securely';
+    }
+
+    if (result.status !== 200) {
+      SEC.attempts++;
+      updateDots();
+      SEC.log('warn', 'Failed login', 'ID: ' + id + ' attempt ' + SEC.attempts + '/5');
+      toast(result.data.error || 'Invalid credentials', 'err');
+      shakeLoginBox();
+
+      if (SEC.attempts === 3 && !SEC.captchaActive) {
+        showCaptchaField();
+        toast('CAPTCHA required after 3 failed attempts', 'warn');
+      }
+      if (SEC.attempts >= 5) triggerLockout();
+      return;
+    }
+
+    // Login successful
+    var agent = result.data.agent;
+    authToken = result.data.token;
+
+    SEC.activeSessions.add(authToken.slice(0, 24));
+    SEC.attempts = 0;
     updateDots();
-    SEC.log('warn', 'Failed login', 'ID: ' + id + ' attempt ' + SEC.attempts + '/5');
-    toast('Invalid credentials \u2014 ' + (5 - SEC.attempts) + ' attempts remaining', 'err');
-    var lb2 = document.getElementById('login-box');
-    if (lb2) { lb2.style.animation = 'shake .4s'; setTimeout(function(){ lb2.style.animation = ''; }, 500); }
-    if (SEC.attempts === 3 && !SEC.captchaActive) {
-      showCaptchaField();
-      toast('CAPTCHA required after 3 failed attempts', 'warn');
+    SEC.log('ok', 'Login: ' + agent.id, 'Party: ' + agent.party + ' LGA: ' + agent.lga);
+
+    currentAgent = {
+      id:    agent.id,
+      tok:   authToken.slice(0, 24),
+      name:  agent.name,
+      party: agent.party,
+      lga:   agent.lga,
+      town:  agent.town,
+      unit:  agent.unit,
+      ward:  agent.ward
+    };
+
+    buildSidebar();
+    showAgentPortal();
+    setupPollingUnit(agent);
+
+    toast('Welcome, ' + agent.name + ' \u00b7 Session secured', 'ok');
+  })
+  .catch(function(err) {
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login Securely';
     }
-    if (SEC.attempts >= 5) triggerLockout();
-    return;
-  }
-
-  var tok = SEC.token();
-  SEC.activeSessions.add(tok);
-  SEC.attempts = 0;
-  updateDots();
-  SEC.log('ok', 'Login: ' + id, 'Party: ' + agent.party + ' LGA: ' + agent.lga);
-
-  currentAgent = {
-    id:    id,
-    tok:   tok,
-    name:  agent.name,
-    party: agent.party,
-    lga:   agent.lga,
-    town:  agent.town,
-    unit:  agent.unit,
-    ward:  agent.ward
-  };
-
-  buildSidebar();
-
-  var overlay = document.getElementById('login-overlay');
-  var asb     = document.getElementById('asb');
-  var amain   = document.getElementById('amain');
-  if (overlay) overlay.style.display = 'none';
-  if (asb)     asb.style.display     = 'flex';
-  if (amain)   amain.style.display   = 'flex';
-
-  buildResultsForm();
-
-  agentPU = null;
-  var i;
-  for (i = 0; i < ALL_POLLING_UNITS.length; i++) {
-    if (ALL_POLLING_UNITS[i].code === agent.unit) {
-      agentPU = ALL_POLLING_UNITS[i];
-      break;
-    }
-  }
-  if (agentPU) {
-    var lf = document.getElementById('a-lga-filt');
-    var ps = document.getElementById('a-pu-srch');
-    var uh = document.getElementById('unit-hdr');
-    if (lf) lf.value = agent.lga;
-    if (ps) ps.value = agentPU.code + ' \u2014 ' + agentPU.name;
-    if (uh) uh.textContent = agentPU.code;
-    renderAgentPUSel(agentPU);
-    filterAPU();
-  }
-
-  toast('Welcome, ' + agent.name + ' \u00b7 Session secured', 'ok');
+    console.error('Login error:', err);
+    toast('Connection error \u2014 check your network', 'err');
+  });
 }
 
 // ── LOGOUT ────────────────────────────────────────────────
@@ -195,30 +250,40 @@ function doLogout() {
     SEC.log('ok', 'Logout: ' + currentAgent.id);
   }
   currentAgent    = null;
+  authToken       = null;
   agentPU         = null;
   pickedLat       = null;
   pickedLng       = null;
   evidenceDataUrl = null;
 
-  var ids = ['login-overlay','asb','amain','l-pin','loc-box','map-btn',
-             'repick-btn','suc-ov','agent-body','ev-thumb','ev-up','ev-info','ev-inp'];
-  var show = { 'login-overlay':'flex', 'map-btn':'flex' };
-  var hide = { 'asb':true,'amain':true,'loc-box':true,'repick-btn':true };
-  var i, el;
-  for (i = 0; i < ids.length; i++) {
-    el = document.getElementById(ids[i]);
-    if (!el) continue;
-    if (ids[i] === 'login-overlay') el.style.display = 'flex';
-    else if (ids[i] === 'map-btn')  el.style.display = 'flex';
-    else if (ids[i] === 'asb' || ids[i] === 'amain') el.style.display = 'none';
-    else if (ids[i] === 'loc-box' || ids[i] === 'repick-btn') el.style.display = 'none';
-    else if (ids[i] === 'l-pin' || ids[i] === 'ev-inp') el.value = '';
-    else if (ids[i] === 'suc-ov') el.classList.remove('show');
-    else if (ids[i] === 'agent-body') el.style.display = 'grid';
-    else if (ids[i] === 'ev-thumb') { el.classList.remove('show'); el.style.display = 'none'; }
-    else if (ids[i] === 'ev-up') el.classList.remove('done');
-    else if (ids[i] === 'ev-info') el.style.display = 'none';
-  }
+  var overlay = document.getElementById('login-overlay');
+  var asb     = document.getElementById('asb');
+  var amain   = document.getElementById('amain');
+  var pinEl   = document.getElementById('l-pin');
+  var locBox  = document.getElementById('loc-box');
+  var mapBtn  = document.getElementById('map-btn');
+  var repick  = document.getElementById('repick-btn');
+  var sucOv   = document.getElementById('suc-ov');
+  var body    = document.getElementById('agent-body');
+  var evThumb = document.getElementById('ev-thumb');
+  var evUp    = document.getElementById('ev-up');
+  var evInfo  = document.getElementById('ev-info');
+  var evInp   = document.getElementById('ev-inp');
+
+  if (overlay) overlay.style.display = 'flex';
+  if (asb)     asb.style.display     = 'none';
+  if (amain)   amain.style.display   = 'none';
+  if (pinEl)   pinEl.value           = '';
+  if (locBox)  locBox.style.display  = 'none';
+  if (mapBtn)  mapBtn.style.display  = 'flex';
+  if (repick)  repick.style.display  = 'none';
+  if (sucOv)   sucOv.classList.remove('show');
+  if (body)    body.style.display    = 'grid';
+  if (evThumb) { evThumb.classList.remove('show'); evThumb.style.display = 'none'; }
+  if (evUp)    evUp.classList.remove('done');
+  if (evInfo)  evInfo.style.display  = 'none';
+  if (evInp)   evInp.value           = '';
+
   toast('Logged out securely', 'info');
 }
 
@@ -227,8 +292,7 @@ function buildSidebar() {
   var a    = currentAgent;
   var init = '';
   var parts = a.name.split(' ');
-  var i;
-  for (i = 0; i < parts.length; i++) if (parts[i]) init += parts[i][0];
+  for (var i = 0; i < parts.length; i++) if (parts[i]) init += parts[i][0];
   init = init.toUpperCase() || 'A';
   var col  = PARTY_COLORS[a.party] || '#00B04F';
 
@@ -246,16 +310,15 @@ function buildSidebar() {
     'sb-sess': { txt: a.tok.slice(0,10) + '...' },
     'sb-ltime':{ txt: new Date().toTimeString().slice(0,8) }
   };
-  var k, el;
-  for (k in map) {
-    el = document.getElementById(k);
+  for (var k in map) {
+    var el = document.getElementById(k);
     if (!el) continue;
     if (map[k].bg) el.style.background = map[k].bg;
     if (map[k].txt !== undefined) el.textContent = map[k].txt;
   }
 }
 
-// ── REGISTRATION ─────────────────────────────────────────
+// ── REGISTRATION STEPS ────────────────────────────────────
 function setRegStep(n) {
   var i, tab, sec;
   for (i = 1; i <= 5; i++) {
@@ -305,6 +368,7 @@ function rNext(step) {
 
 function rPrev(step) { setRegStep(step - 1); }
 
+// ── REGISTRATION POLLING UNIT SEARCH ──────────────────────
 function filterRegUnits() {
   regPU = null;
   var s = document.getElementById('r-pu-srch');
@@ -382,6 +446,7 @@ function selectRegPU(u) {
   updateTag();
 }
 
+// ── REGISTRATION TAG PREVIEW ──────────────────────────────
 function updateTag() {
   var pe  = document.getElementById('r-party');
   var le  = document.getElementById('r-lga');
@@ -442,6 +507,7 @@ function buildRegSummary() {
   updateTag();
 }
 
+// ── PASSWORD STRENGTH ─────────────────────────────────────
 function checkPwd() {
   var v = document.getElementById('r-pin');
   var f = document.getElementById('pwd-fill');
@@ -465,6 +531,7 @@ function checkPwd() {
   if (t) { t.textContent = lvl.l; t.style.color = lvl.c; }
 }
 
+// ── PHOTO UPLOAD ──────────────────────────────────────────
 function handlePhoto(inpId, prevId, boxId) {
   var inp = document.getElementById(inpId);
   if (!inp || !inp.files || !inp.files[0]) return;
@@ -479,6 +546,7 @@ function handlePhoto(inpId, prevId, boxId) {
   reader.readAsDataURL(inp.files[0]);
 }
 
+// ── COMPLETE REGISTRATION (API-based) ─────────────────────
 function completeReg() {
   var pe  = document.getElementById('r-party');
   var le  = document.getElementById('r-lga');
@@ -486,6 +554,8 @@ function completeReg() {
   var pi  = document.getElementById('r-pin');
   var fne = document.getElementById('r-fn');
   var lne = document.getElementById('r-ln');
+  var sq  = document.getElementById('r-sq');
+  var sa  = document.getElementById('r-sa');
   var tid = document.getElementById('tag-id');
   var btn = document.getElementById('reg-submit-btn');
 
@@ -495,6 +565,8 @@ function completeReg() {
   var pin   = pi  ? pi.value        : '';
   var fname = fne ? fne.value.trim(): '';
   var lname = lne ? lne.value.trim(): '';
+  var secQ  = sq  ? sq.value        : '';
+  var secA  = sa  ? sa.value.trim() : '';
 
   if (!regPU)      { toast('Select a polling unit', 'err'); return; }
   if (!party)      { toast('Select your party', 'err'); return; }
@@ -503,27 +575,48 @@ function completeReg() {
 
   if (btn) { btn.disabled = true; btn.textContent = 'Registering...'; }
 
-  regAgentCount++;
-  var lgaCode = regPU.code.split('/')[1] || 'XX';
-  var pad     = String(regAgentCount);
-  while (pad.length < 4) pad = '0' + pad;
-  var agentId = 'EK-' + party + '-' + lgaCode + '-' + pad;
-
-  AGENTS[agentId] = {
-    pin:   pin,
-    name:  (fname + ' ' + lname).trim(),
+  var payload = {
+    name: (fname + ' ' + lname).trim(),
     party: party,
-    lga:   lga,
-    town:  town,
-    unit:  regPU.code,
-    ward:  regPU.ward
+    lga: lga,
+    town: town,
+    unit: regPU.code,
+    ward: regPU.ward,
+    pin: pin,
+    securityQuestion: secQ || null,
+    securityAnswer: secA || null
   };
 
-  if (tid) tid.textContent = 'ID: ' + agentId;
-  SEC.log('ok', 'Agent registered: ' + agentId, party + ' ' + lga + ' ' + regPU.code);
-  toast('Done! Agent ID: ' + agentId + ' \u2014 redirecting to login...', 'ok');
+  fetch(API_BASE + '/api/agents/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(response) {
+    return response.json().then(function(data) {
+      return { status: response.status, data: data };
+    });
+  })
+  .then(function(result) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Complete Registration & Generate ID Tag'; }
 
-  setTimeout(function() {
-    window.location.href = 'agent.html';
-  }, 2500);
+    if (result.status !== 201) {
+      toast(result.data.error || 'Registration failed', 'err');
+      return;
+    }
+
+    var agentId = result.data.agentId;
+    if (tid) tid.textContent = 'ID: ' + agentId;
+    SEC.log('ok', 'Agent registered: ' + agentId, party + ' ' + lga + ' ' + regPU.code);
+    toast('Done! Agent ID: ' + agentId + ' \u2014 redirecting to login...', 'ok');
+
+    setTimeout(function() {
+      window.location.href = 'agent.html';
+    }, 2500);
+  })
+  .catch(function(err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Complete Registration & Generate ID Tag'; }
+    console.error('Registration error:', err);
+    toast('Connection error \u2014 check your network', 'err');
+  });
 }

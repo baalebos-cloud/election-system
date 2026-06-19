@@ -2,23 +2,30 @@
 //  js/results.js  —  Pure ES5
 //  PU picker, results form, evidence upload, submit,
 //  dashboard render, live results screen, security screen
-//  FIXED: Dropdown selection for polling units with special chars
+//  LIVE DATA: Fetches real agents and results from API
 // ============================================================
 
+var API_BASE = window.location.origin;
 var reportedResults = {};
-var totalSubCount   = 0;
+var totalSubCount = 0;
+var liveAgents = [];
+var liveFeed = [];
 
-var MOCK_FEED = [
-  {u:'EKS/AD/0001',lga:'ADO-EKITI',         d:'Results transmitted \u2014 842 votes counted',       age:'fn'},
-  {u:'EKS/EE/0001',lga:'EKITI EAST',         d:'Agent EK-PDP-EE-0002 submitted EC8A results',       age:'fn'},
-  {u:'EKS/IK/0001',lga:'IKERE',              d:'Evidence sheet verified and stored',                 age:'fr'},
-  {u:'EKS/IJ/0001',lga:'IJERO',              d:'Results uploaded \u2014 612 votes counted',           age:'fr'},
-  {u:'EKS/MB/0001',lga:'MOBA',               d:'Agent connected \u2014 GPS confirmed',               age:'fo'},
-  {u:'EKS/OY/0001',lga:'OYE',                d:'Results pending \u2014 agent online',                age:'fo'},
-  {u:'EKS/GB/0001',lga:'GBOYIN',             d:'Delayed \u2014 connectivity issue reported',         age:'fa'},
-  {u:'EKS/EW/0001',lga:'EKITI WEST',         d:'Results transmitted \u2014 791 votes counted',       age:'fo'}
-];
-var feedBase = Date.now();
+// Party colors lookup
+var PARTY_COLORS = {
+  'APC': '#006B3F',
+  'PDP': '#E30A17',
+  'LP': '#1A6FA8',
+  'NNPP': '#E8A020',
+  'SDP': '#BF360C',
+  'APGA': '#4CAF50',
+  'ADC': '#9C27B0',
+  'YPP': '#FF9800',
+  'ZLP': '#795548',
+  'AAC': '#607D8B',
+  'NRM': '#3F51B5',
+  'PRP': '#E91E63'
+};
 
 // ── HTML ESCAPE HELPER ────────────────────────────────────
 function escapeHtml(str) {
@@ -31,39 +38,67 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-// ── SEED DEMO DATA ────────────────────────────────────────
-function seedMockData() {
-  var sample = ALL_POLLING_UNITS.slice(0, 65);
-  var i, j, u, tot, rem, res, p, share, minsAgo, d;
-  for (i = 0; i < sample.length; i++) {
-    u   = sample[i];
-    tot = Math.floor(Math.random() * 850) + 200;
-    rem = tot;
-    res = {};
-    for (j = 0; j < PARTIES.length; j++) {
-      p = PARTIES[j];
-      if (j === PARTIES.length - 1) {
-        share = rem;
-      } else if (j === 0) {
-        share = Math.min(rem, Math.floor(tot * (0.28 + Math.random() * 0.15)));
-      } else if (j === 1) {
-        share = Math.min(rem, Math.floor(tot * (0.20 + Math.random() * 0.12)));
-      } else {
-        share = Math.min(rem, Math.floor(tot * (0.02 + Math.random() * 0.07)));
+// ── FETCH LIVE DATA FROM API ──────────────────────────────
+function fetchLiveAgents() {
+  fetch(API_BASE + '/api/agents/list')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.agents) {
+        liveAgents = data.agents;
+        renderAgentMon();
+        updateAgentCount();
       }
-      res[p.id] = Math.max(0, share);
-      rem = Math.max(0, rem - share);
-    }
-    minsAgo = Math.floor(Math.random() * 200);
-    d = new Date();
-    d.setMinutes(d.getMinutes() - minsAgo);
-    reportedResults[u.code] = {
-      code:u.code, name:u.name, ward:u.ward, lga:u.lga,
-      lat:u.lat, lng:u.lng, results:res,
-      time:d.toTimeString().slice(0,5),
-      evidenceUrl:null, agentId:null, hash:null
-    };
-  }
+    })
+    .catch(function(err) {
+      console.error('Failed to fetch agents:', err);
+    });
+}
+
+function fetchLiveResults() {
+  fetch(API_BASE + '/api/results/live')
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.results) {
+        reportedResults = {};
+        liveFeed = [];
+        data.results.forEach(function(r) {
+          reportedResults[r.unit_code] = {
+            code: r.unit_code,
+            name: r.unit_name || r.unit_code,
+            ward: r.ward || '',
+            lga: r.lga || '',
+            lat: r.lat,
+            lng: r.lng,
+            results: typeof r.votes === 'string' ? JSON.parse(r.votes) : r.votes,
+            time: r.submitted_at ? new Date(r.submitted_at).toTimeString().slice(0, 5) : '',
+            evidenceUrl: r.evidence_url,
+            agentId: r.agent_id,
+            hash: r.integrity_hash,
+            submittedAt: r.submitted_at
+          };
+          // Build live feed
+          liveFeed.push({
+            u: r.unit_code,
+            lga: r.lga || '',
+            d: 'Results submitted — ' + r.total_votes + ' votes counted',
+            time: r.submitted_at,
+            agentId: r.agent_id
+          });
+        });
+        totalSubCount = data.count;
+        refreshDashDisplay();
+        renderResults();
+      }
+    })
+    .catch(function(err) {
+      console.error('Failed to fetch results:', err);
+    });
+}
+
+function updateAgentCount() {
+  var onlineCount = liveAgents.filter(function(a) { return a.status === 'on'; }).length;
+  var el = document.getElementById('st-agents');
+  if (el) el.textContent = onlineCount;
 }
 
 // ── POLLING UNIT PICKER (FIXED) ───────────────────────────
@@ -159,7 +194,6 @@ function renderAgentPUSel(u) {
 
 // ── EVENT DELEGATION FOR AGENT PORTAL DROPDOWN ────────────
 document.addEventListener('click', function(e) {
-  // Handle agent portal polling unit selection
   var puOpt = e.target.closest('.pu-opt[data-pu-index]');
   if (puOpt) {
     var puDd = puOpt.closest('#a-pu-dd');
@@ -172,7 +206,6 @@ document.addEventListener('click', function(e) {
     }
   }
   
-  // Close agent portal dropdown on outside click
   if (!e.target.closest('#a-pu-srch') && !e.target.closest('#a-pu-dd')) {
     var add = document.getElementById('a-pu-dd');
     if (add) add.classList.remove('open');
@@ -269,12 +302,6 @@ function submitResults() {
   if (pickedLat === null) { toast('Set your GPS location on the map first', 'warn'); return; }
   if (!evidenceDataUrl)   { toast('Upload the EC8A result sheet photo first', 'warn'); return; }
 
-  if (!SEC.activeSessions.has(currentAgent.tok)) {
-    SEC.log('crit', 'Invalid session token', currentAgent.id);
-    toast('Session expired \u2014 please login again', 'err');
-    doLogout(); return;
-  }
-
   var votes = {}, total = 0, i, p, el, v;
   for (i = 0; i < PARTIES.length; i++) {
     p  = PARTIES[i];
@@ -284,53 +311,78 @@ function submitResults() {
   }
   if (total === 0) { toast('Enter vote counts before submitting', 'warn'); return; }
 
-  var now       = new Date();
-  var refId     = 'EK-' + SEC.hash({ id: currentAgent.id, unit: agentPU.code, ts: Date.now() });
-  var entryHash = SEC.hash({ votes: votes, unit: agentPU.code, agent: currentAgent.id });
+  var submitBtn = document.getElementById('sub-btn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...'; }
 
-  reportedResults[agentPU.code] = {
-    code: agentPU.code, name: agentPU.name, ward: agentPU.ward, lga: agentPU.lga,
-    lat: pickedLat, lng: pickedLng, results: votes,
-    time: now.toTimeString().slice(0,5),
-    evidenceUrl: evidenceDataUrl,
-    agentId: currentAgent.id, agentName: currentAgent.name,
-    party: currentAgent.party, refId: refId, hash: entryHash
-  };
+  fetch(API_BASE + '/api/results/submit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + authToken
+    },
+    body: JSON.stringify({
+      unitCode: agentPU.code,
+      votes: votes,
+      lat: pickedLat,
+      lng: pickedLng,
+      evidenceBase64: evidenceDataUrl,
+      officerName: document.getElementById('officer') ? document.getElementById('officer').value : null,
+      registeredVoters: document.getElementById('reg-v') ? parseInt(document.getElementById('reg-v').value) || null : null,
+      accreditedVoters: document.getElementById('acc-v') ? parseInt(document.getElementById('acc-v').value) || null : null,
+      rejectedBallots: document.getElementById('rej-v') ? parseInt(document.getElementById('rej-v').value) || 0 : 0,
+      remarks: document.getElementById('remarks') ? document.getElementById('remarks').value : null
+    })
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(result) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Transmit Results to Central Server'; }
 
-  totalSubCount++;
-  var ss = document.getElementById('sb-subs');
-  if (ss) ss.textContent = totalSubCount;
+    if (!result.success) {
+      toast(result.error || 'Submission failed', 'err');
+      return;
+    }
 
-  var sl = document.getElementById('sub-log');
-  if (sl) sl.innerHTML = '<div style="background:var(--gl);border:1px solid rgba(0,176,79,.2);border-radius:var(--r6);padding:7px 9px">' +
-    '<div style="font-weight:700;color:var(--gd);font-size:10px">\u2705 Submitted</div>' +
-    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--tm)">' + refId.slice(0,18) + '</div>' +
-    '<div style="font-size:9px;color:var(--tm)">' + now.toTimeString().slice(0,8) + '</div></div>';
+    totalSubCount++;
+    var ss = document.getElementById('sb-subs');
+    if (ss) ss.textContent = totalSubCount;
 
-  var rows = [
-    ['Ref ID',      refId.slice(0,20)],
-    ['Unit',        agentPU.code],
-    ['Agent',       currentAgent.id],
-    ['Total Votes', total.toLocaleString()],
-    ['GPS',         pickedLat.toFixed(5) + ', ' + pickedLng.toFixed(5)],
-    ['Time',        now.toTimeString().slice(0,8)],
-    ['Hash',        entryHash]
-  ];
-  var rHtml = '', j;
-  for (j = 0; j < rows.length; j++) {
-    rHtml += '<div class="rc-r"><span class="rc-l">' + rows[j][0] + '</span><span class="rc-v">' + rows[j][1] + '</span></div>';
-  }
-  var sr = document.getElementById('sub-receipt');
-  if (sr) sr.innerHTML = rHtml;
+    var now = new Date();
+    var sl = document.getElementById('sub-log');
+    if (sl) sl.innerHTML = '<div style="background:var(--gl);border:1px solid rgba(0,176,79,.2);border-radius:var(--r6);padding:7px 9px">' +
+      '<div style="font-weight:700;color:var(--gd);font-size:10px">\u2705 Submitted</div>' +
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--tm)">' + result.refId.slice(0,18) + '</div>' +
+      '<div style="font-size:9px;color:var(--tm)">' + now.toTimeString().slice(0,8) + '</div></div>';
 
-  var body  = document.getElementById('agent-body');
-  var sucOv = document.getElementById('suc-ov');
-  if (body)  body.style.display = 'none';
-  if (sucOv) sucOv.classList.add('show');
+    var rows = [
+      ['Ref ID',      result.refId.slice(0,20)],
+      ['Unit',        agentPU.code],
+      ['Agent',       currentAgent.id],
+      ['Total Votes', total.toLocaleString()],
+      ['GPS',         pickedLat.toFixed(5) + ', ' + pickedLng.toFixed(5)],
+      ['Time',        now.toTimeString().slice(0,8)],
+      ['Hash',        result.hash]
+    ];
+    var rHtml = '', j;
+    for (j = 0; j < rows.length; j++) {
+      rHtml += '<div class="rc-r"><span class="rc-l">' + rows[j][0] + '</span><span class="rc-v">' + rows[j][1] + '</span></div>';
+    }
+    var sr = document.getElementById('sub-receipt');
+    if (sr) sr.innerHTML = rHtml;
 
-  SEC.log('ok', 'Results submitted: ' + agentPU.code, 'Ref: ' + refId + ' Votes: ' + total);
-  refreshDash();
-  toast('Results sealed and transmitted \u2713', 'ok');
+    var body  = document.getElementById('agent-body');
+    var sucOv = document.getElementById('suc-ov');
+    if (body)  body.style.display = 'none';
+    if (sucOv) sucOv.classList.add('show');
+
+    SEC.log('ok', 'Results submitted: ' + agentPU.code, 'Ref: ' + result.refId + ' Votes: ' + total);
+    fetchLiveResults();
+    toast('Results sealed and transmitted \u2713', 'ok');
+  })
+  .catch(function(err) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Transmit Results to Central Server'; }
+    console.error('Submit error:', err);
+    toast('Submission failed \u2014 check your connection', 'err');
+  });
 }
 
 function resetForm() {
@@ -352,6 +404,11 @@ function resetForm() {
 
 // ── DASHBOARD ─────────────────────────────────────────────
 function refreshDash() {
+  fetchLiveAgents();
+  fetchLiveResults();
+}
+
+function refreshDashDisplay() {
   var rep = 0, tot = 0, k, u, v, j;
   for (k in reportedResults) {
     rep++;
@@ -361,11 +418,10 @@ function refreshDash() {
       tot += v;
     }
   }
-  var ids = ['st-rep','st-votes','st-agents','st-alerts','st-subs'];
+  var ids = ['st-rep','st-votes','st-alerts','st-subs'];
   var vals = [
     rep,
     tot.toLocaleString(),
-    SEC.activeSessions.size,
     SEC.auditLog.filter(function(e){ return e.type === 'crit'; }).length,
     totalSubCount
   ];
@@ -378,7 +434,6 @@ function refreshDash() {
   if (pb) pb.textContent = Math.round(rep / 2195 * 100) + '% reported';
   renderPartyTable();
   renderFeed();
-  renderAgentMon();
 }
 
 function renderPartyTable() {
@@ -401,7 +456,7 @@ function renderPartyTable() {
     v     = tots[p.id];
     pct   = grand > 0 ? (v/grand*100).toFixed(1) : '0.0';
     bw    = grand > 0 ? (v/grand*100).toFixed(1)  : '0';
-    badge = i === 0 ? '<span style="font-size:8px;background:var(--gol);color:#7a5600;padding:1px 5px;border-radius:20px;font-weight:700">\uD83C\uDFC6 Leading</span>' : '';
+    badge = i === 0 && v > 0 ? '<span style="font-size:8px;background:var(--gol);color:#7a5600;padding:1px 5px;border-radius:20px;font-weight:700">\uD83C\uDFC6 Leading</span>' : '';
     tr    = document.createElement('tr');
     tr.innerHTML =
       '<td><div style="display:flex;align-items:center;gap:6px;padding:0 4px">' +
@@ -422,43 +477,65 @@ function renderFeed() {
   var bdg  = document.getElementById('feed-bdg');
   if (!list) return;
   list.innerHTML = '';
-  var i, f, d, el;
-  for (i = 0; i < MOCK_FEED.length; i++) {
-    f  = MOCK_FEED[i];
-    d  = new Date(feedBase - i * 9 * 60000);
+  
+  if (liveFeed.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--tm);padding:20px;font-size:11px">No results submitted yet</div>';
+    if (bdg) bdg.textContent = '0 updates';
+    return;
+  }
+
+  var i, f, d, el, age;
+  for (i = 0; i < Math.min(liveFeed.length, 15); i++) {
+    f  = liveFeed[i];
+    d  = f.time ? new Date(f.time) : new Date();
+    var minsAgo = (Date.now() - d.getTime()) / 60000;
+    if (minsAgo < 5) age = 'fn';
+    else if (minsAgo < 30) age = 'fr';
+    else if (minsAgo < 60) age = 'fo';
+    else age = 'fa';
+    
     el = document.createElement('div');
     el.className = 'fi';
-    el.innerHTML = '<div class="fdot ' + f.age + '"></div>' +
-      '<div style="flex:1"><div class="fu">' + f.u + ' &middot; ' + f.lga + '</div>' +
-      '<div class="fd">' + f.d + '</div></div>' +
+    el.innerHTML = '<div class="fdot ' + age + '"></div>' +
+      '<div style="flex:1"><div class="fu">' + escapeHtml(f.u) + ' &middot; ' + escapeHtml(f.lga) + '</div>' +
+      '<div class="fd">' + escapeHtml(f.d) + '</div></div>' +
       '<div class="ft">' + d.toTimeString().slice(0,5) + '</div>';
     list.appendChild(el);
   }
-  if (bdg) bdg.textContent = MOCK_FEED.length + ' updates';
+  if (bdg) bdg.textContent = liveFeed.length + ' update' + (liveFeed.length !== 1 ? 's' : '');
 }
 
 function renderAgentMon() {
   var mon = document.getElementById('agent-mon');
   if (!mon) return;
-  var agents = [
-    {name:'Taiwo Adeyemi',   unit:'EKS/AD/0001',col:'#006B3F',party:'APC', st:'on',  lga:'ADO-EKITI'},
-    {name:'Funmi Olaoluwa',  unit:'EKS/EE/0001',col:'#E30A17',party:'PDP', st:'on',  lga:'EKITI EAST'},
-    {name:'Kehinde Adesanya',unit:'EKS/IK/0001',col:'#1A6FA8',party:'LP',  st:'pend',lga:'IKERE'},
-    {name:'Bola Ogunleye',   unit:'EKS/IJ/0001',col:'#E8A020',party:'NNPP',st:'off', lga:'IJERO'},
-    {name:'Tunde Ajayi',     unit:'EKS/MB/0001',col:'#006B3F',party:'APC', st:'on',  lga:'MOBA'},
-    {name:'Yemi Fasanya',    unit:'EKS/OY/0001',col:'#BF360C',party:'SDP', st:'pend',lga:'OYE'}
-  ];
-  var html = '', i, a, init, sl, sc;
-  for (i = 0; i < agents.length; i++) {
-    a    = agents[i];
-    init = a.name.split(' ').map(function(n){ return n[0]; }).join('');
-    sl   = a.st === 'on' ? 'Online' : a.st === 'pend' ? 'Connecting...' : 'Offline';
-    sc   = a.st === 'on' ? 'var(--g)' : a.st === 'pend' ? 'var(--gold)' : 'var(--g400)';
+
+  if (liveAgents.length === 0) {
+    mon.innerHTML = '<div style="text-align:center;color:var(--tm);padding:20px;font-size:11px">No agents registered yet</div>';
+    return;
+  }
+
+  var html = '', i, a, init, sl, sc, col;
+  for (i = 0; i < Math.min(liveAgents.length, 10); i++) {
+    a = liveAgents[i];
+    init = a.name ? a.name.split(' ').map(function(n){ return n[0]; }).join('').toUpperCase() : '?';
+    col = PARTY_COLORS[a.party] || '#00B04F';
+    
+    if (a.status === 'on') {
+      sl = 'Online';
+      sc = 'var(--g)';
+    } else if (a.status === 'pend') {
+      sl = 'Away';
+      sc = 'var(--gold)';
+    } else {
+      sl = 'Offline';
+      sc = 'var(--g400)';
+    }
+    
     html += '<div class="ami">' +
-      '<div class="ami-av" style="background:' + a.col + '">' + init + '</div>' +
-      '<div style="flex:1"><div class="ami-nm">' + a.name + '</div>' +
-      '<div class="ami-u">' + a.unit + ' &middot; ' + a.party + ' &middot; ' + a.lga + '</div></div>' +
-      '<div class="ami-s" style="color:' + sc + '"><div class="sdot ' + a.st + '"></div>' + sl + '</div></div>';
+      '<div class="ami-av" style="background:' + col + '">' + init + '</div>' +
+      '<div style="flex:1"><div class="ami-nm">' + escapeHtml(a.name) + '</div>' +
+      '<div class="ami-u">' + escapeHtml(a.unit_code) + ' &middot; ' + escapeHtml(a.party) + ' &middot; ' + escapeHtml(a.lga) + '</div></div>' +
+      '<div class="ami-s" style="color:' + sc + '"><div class="sdot ' + a.status + '"></div>' + sl + '</div></div>';
   }
   mon.innerHTML = html;
 }
@@ -481,7 +558,7 @@ function renderLGAChips() {
   var lgas = [], k, u;
   for (k in reportedResults) {
     u = reportedResults[k];
-    if (lgas.indexOf(u.lga) === -1) lgas.push(u.lga);
+    if (lgas.indexOf(u.lga) === -1 && u.lga) lgas.push(u.lga);
   }
   lgas.sort();
   var i, c;
@@ -517,7 +594,7 @@ function renderUnitCards(lgaFilter) {
   for (k in reportedResults) {
     u = reportedResults[k];
     var ml = lgaFilter === 'all' || u.lga === lgaFilter;
-    var ms = !q || u.code.toLowerCase().indexOf(q) > -1 || u.name.toLowerCase().indexOf(q) > -1 || u.lga.toLowerCase().indexOf(q) > -1;
+    var ms = !q || u.code.toLowerCase().indexOf(q) > -1 || (u.name && u.name.toLowerCase().indexOf(q) > -1) || (u.lga && u.lga.toLowerCase().indexOf(q) > -1);
     if (ml && ms) units.push(u);
   }
   if (!units.length) {
@@ -555,8 +632,8 @@ function renderUnitCards(lgaFilter) {
     card.innerHTML =
       '<div class="ruc-h">' +
         '<div><div class="ruc-code">' + escapeHtml(u.code) + '</div>' +
-        '<div class="ruc-nm">' + escapeHtml(u.name) + ' &middot; ' + escapeHtml(u.ward||'') + '</div>' +
-        '<div class="ruc-nm" style="color:var(--blue)">' + escapeHtml(u.lga) + '</div></div>' +
+        '<div class="ruc-nm">' + escapeHtml(u.name || '') + ' &middot; ' + escapeHtml(u.ward||'') + '</div>' +
+        '<div class="ruc-nm" style="color:var(--blue)">' + escapeHtml(u.lga || '') + '</div></div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">' +
           '<div class="ruc-time">' + (u.time||'') + '</div>' + evHtml +
         '</div>' +
@@ -599,7 +676,8 @@ function renderSecLog() {
 
 function updateSecStats() {
   var ids = ['sec-sessions','sec-blocked','sec-failed','sec-events'];
-  var vals = [SEC.activeSessions.size, SEC.blockedSessions.length, SEC.attempts, SEC.auditLog.length];
+  var onlineCount = liveAgents.filter(function(a) { return a.status === 'on'; }).length;
+  var vals = [onlineCount, SEC.blockedSessions.length, SEC.attempts, SEC.auditLog.length];
   var i, el;
   for (i = 0; i < ids.length; i++) {
     el = document.getElementById(ids[i]);
@@ -680,3 +758,13 @@ function updateThreatBanner() {
     if (secTxt) secTxt.textContent = 'Secure';
   }
 }
+
+// ── AUTO-REFRESH LIVE DATA ────────────────────────────────
+setInterval(function() {
+  var dash = document.getElementById('dashboard-screen');
+  var results = document.getElementById('results-screen');
+  if ((dash && dash.classList.contains('active')) || (results && results.classList.contains('active'))) {
+    fetchLiveAgents();
+    fetchLiveResults();
+  }
+}, 30000);

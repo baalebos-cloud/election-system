@@ -42,6 +42,8 @@ router.post('/register', async (req, res) => {
       [agentId, name, party, lga, town, unit, ward, pinHash, securityQuestion || null, securityAHash]
     );
 
+    console.log(`✅ Agent registered: ${agentId}`);
+
     res.status(201).json({
       success: true,
       agentId,
@@ -51,7 +53,7 @@ router.post('/register', async (req, res) => {
     if (err.code === '23505')
       return res.status(409).json({ error: 'Agent already registered for this unit' });
     console.error('[register]', err.message);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ error: 'Registration failed: ' + err.message });
   }
 });
 
@@ -79,6 +81,8 @@ router.post('/login', async (req, res) => {
 
     const token = generateToken(agent);
 
+    console.log(`✅ Agent logged in: ${agentId}`);
+
     res.json({
       success: true,
       token,
@@ -94,7 +98,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('[login]', err.message);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: 'Login failed: ' + err.message });
   }
 });
 

@@ -22,6 +22,47 @@ module.exports = async (req, res) => {
 
   const url = req.url;
 
+  // ── GET /api/agents/list — Get all agents with online status ──
+  if (req.method === 'GET' && url.includes('/list')) {
+    try {
+      const { rows } = await db.query(`
+        SELECT 
+          id, name, party, lga, town, unit_code, ward, registered_at, last_login, is_active,
+          CASE 
+            WHEN last_login > NOW() - INTERVAL '15 minutes' THEN 'on'
+            WHEN last_login > NOW() - INTERVAL '1 hour' THEN 'pend'
+            ELSE 'off'
+          END as status
+        FROM agents 
+        WHERE is_active = TRUE 
+        ORDER BY last_login DESC NULLS LAST
+      `);
+      return res.status(200).json({ count: rows.length, agents: rows });
+    } catch (err) {
+      console.error('[list agents]', err);
+      return res.status(500).json({ error: 'Failed to fetch agents' });
+    }
+  }
+
+  // ── GET /api/agents/stats — Get agent statistics ──
+  if (req.method === 'GET' && url.includes('/stats')) {
+    try {
+      const { rows } = await db.query(`
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN last_login > NOW() - INTERVAL '15 minutes' THEN 1 END) as online,
+          COUNT(CASE WHEN last_login > NOW() - INTERVAL '1 hour' AND last_login <= NOW() - INTERVAL '15 minutes' THEN 1 END) as connecting,
+          COUNT(CASE WHEN last_login IS NULL OR last_login <= NOW() - INTERVAL '1 hour' THEN 1 END) as offline
+        FROM agents 
+        WHERE is_active = TRUE
+      `);
+      return res.status(200).json(rows[0]);
+    } catch (err) {
+      console.error('[agent stats]', err);
+      return res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  }
+
   // ── POST /api/agents/register ─────────────────────────────
   if (req.method === 'POST' && url.includes('/register')) {
     try {

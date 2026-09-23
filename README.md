@@ -288,7 +288,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, PR conventions, comm
 
 ## Licence
 
-All rights reserved — NICERES / Baalebos Cloud. Contact [jayeolaoluwadamilare@gmail.com](mailto:jayeolaoluwadamilare@gmail.com) for collaboration inquiries.
+All rights reserved — NICERES / Baalebos Cloud Team. Contact [jayeolaoluwadamilare@gmail.com](mailto:jayeolaoluwadamilare@gmail.com) for collaboration inquiries.
 
 ---
 

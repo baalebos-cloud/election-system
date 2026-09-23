@@ -1,7 +1,6 @@
 // ============================================================
 //  js/app.js  —  Pure ES5
-//  Screen router, toast, clock, init
-//  LIVE DATA: No more mock data - fetches from API
+//  Screen router, toast, clock, state filter, init
 // ============================================================
 
 function showScreen(name) {
@@ -10,13 +9,13 @@ function showScreen(name) {
   var i;
   for (i = 0; i < screens.length; i++) screens[i].classList.remove('active');
   for (i = 0; i < btns.length; i++)    btns[i].classList.remove('active');
-  var screen = document.getElementById(name + '-screen');
-  if (screen) screen.classList.add('active');
+  var sc = document.getElementById(name + '-screen');
+  if (sc) sc.classList.add('active');
   var names = ['dashboard','agent','results','security','reg'];
   var idx   = names.indexOf(name);
   if (btns[idx]) btns[idx].classList.add('active');
   if (name === 'dashboard') { refreshDash(); initDashMap(); }
-  if (name === 'results')   { fetchLiveResults(); }
+  if (name === 'results')   { renderResults(); }
   if (name === 'security')  { renderSecLog(); updateSecStats(); }
 }
 
@@ -25,7 +24,7 @@ function toast(msg, type) {
   var icons = { ok:'\u2705', err:'\u274C', warn:'\u26A0\uFE0F', info:'\u2139\uFE0F' };
   var t = document.createElement('div');
   t.className = 'toast' + (type !== 'ok' ? ' ' + type : '');
-  t.innerHTML = '<span>' + (icons[type] || '\u2705') + '</span><span>' + msg + '</span>';
+  t.innerHTML = '<span>' + (icons[type]||'\u2705') + '</span><span>' + msg + '</span>';
   var tc = document.getElementById('toast-c');
   if (tc) tc.appendChild(t);
   setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 4200);
@@ -40,28 +39,40 @@ setInterval(function() {
 // Close dropdowns on outside click
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#r-pu-srch') && !e.target.closest('#r-pu-dd')) {
-    var dd = document.getElementById('r-pu-dd');
-    if (dd) dd.classList.remove('open');
+    var d = document.getElementById('r-pu-dd');
+    if (d) d.classList.remove('open');
   }
   if (!e.target.closest('#a-pu-srch') && !e.target.closest('#a-pu-dd')) {
-    var dd2 = document.getElementById('a-pu-dd');
-    if (dd2) dd2.classList.remove('open');
+    var d2 = document.getElementById('a-pu-dd');
+    if (d2) d2.classList.remove('open');
   }
 });
 
-// Page-aware init — LIVE DATA (no more mock data)
+// Live feed simulation
+setInterval(function() {
+  if (Math.random() > 0.65 && typeof MOCK_FEED !== 'undefined' && typeof ALL_POLLING_UNITS !== 'undefined') {
+    var u = ALL_POLLING_UNITS[Math.floor(Math.random() * Math.min(ALL_POLLING_UNITS.length, 500))];
+    MOCK_FEED.unshift({ u: u.code, state: u.state, d: 'Agent activity detected', age: 'fn' });
+    if (MOCK_FEED.length > 25) MOCK_FEED.pop();
+    var dash = document.getElementById('dashboard-screen');
+    if (dash && dash.classList.contains('active')) renderFeed();
+  }
+}, 9000);
+
+// Page-aware init
 document.addEventListener('DOMContentLoaded', function() {
-  SEC.log('ok',   'System initialised', '2,195 polling units, 16 LGAs, Ekiti State');
-  SEC.log('ok',   'Security monitoring online', 'Brute-force, rate limiting, anomaly detection');
-  SEC.log('info', 'Audit logging started', 'All events timestamped and chain-hashed');
+  SEC.log('ok',   'NICERES v1.0 initialised', '176,846 polling units | 36 States + FCT | Nigeria');
+  SEC.log('ok',   'Security monitoring online', 'Brute-force, rate-limiting, anomaly detection, AI analysis');
+  SEC.log('ok',   'AI anomaly engine ready', 'Statistical outlier detection on all result submissions');
+  SEC.log('info', 'Audit logging started', 'All events hash-chained and tamper-evident');
   updateThreatBanner();
   updateSecStats();
 
-  var activeScreen = document.querySelector('.screen.active');
-  if (activeScreen) {
-    var id = activeScreen.id;
-    if (id === 'dashboard-screen') { refreshDash(); initDashMap(); }
-    if (id === 'results-screen')   { fetchLiveResults(); }
-    if (id === 'security-screen')  { renderSecLog(); updateSecStats(); }
+  var active = document.querySelector('.screen.active');
+  if (active) {
+    var id = active.id;
+    if (id === 'dashboard-screen') { seedMockData(); refreshDash(); initDashMap(); }
+    if (id === 'results-screen')   { seedMockData(); renderResults(); }
+    if (id === 'security-screen')  { seedMockData(); renderSecLog(); updateSecStats(); }
   }
 });

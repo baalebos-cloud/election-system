@@ -3,73 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex,nofollow">
-<title>Register Agent — INEC Ekiti State</title>
+<title>Register Agent — NICERES Nigeria</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/main.css">
-</head>
-<body>
-<div id="app">
-<div class="threat" id="threat-banner">
-  <i class="fas fa-shield-alt"></i><span id="threat-msg"></span>
-  <span id="threat-detail" style="margin-left:auto;font-size:9px;opacity:.8"></span>
-</div>
+</head><body><div id="app">
+<div class="threat" id="threat-banner"><i class="fas fa-shield-alt"></i><span id="threat-msg"></span></div>
 <div class="tb">
-  <div class="tb-brand">
-    <div class="tb-ico">&#x1F5F3;&#xFE0F;</div>
-    <div>
-      <div class="tb-nm">INEC Ekiti State &mdash; Secure Election Results System</div>
-      <div class="tb-sub">Governorship Election &middot; Official Use Only &middot; Encrypted &amp; Audited</div>
-    </div>
-  </div>
-  <div class="tb-nav"><a href="index.html" class="nb"><i class="fas fa-tv"></i> Situation Room</a>
+  <div class="tb-brand"><div class="tb-ico">&#x1F5F3;</div><div>
+    <div class="tb-nm">NICERES — Nigeria Election Results Integrity System</div>
+    <div class="tb-sub">Presidential &amp; Governorship Elections &middot; 36 States + FCT</div>
+  </div></div>
+  <div class="tb-nav">
+    <a href="index.html" class="nb"><i class="fas fa-tv"></i> Situation Room</a>
     <a href="agent.html" class="nb"><i class="fas fa-user-shield"></i> Agent Portal</a>
     <a href="results.html" class="nb"><i class="fas fa-chart-bar"></i> Live Results</a>
     <a href="security.html" class="nb"><i class="fas fa-lock"></i> Security</a>
-    <a href="register.html" class="nb active"><i class="fas fa-user-plus"></i> Register Agent</a></div>
+    <a href="register.html" class="nb active"><i class="fas fa-user-plus"></i> Register Agent</a>
+  </div>
   <div class="tb-right">
-    <div class="sec-bar" id="sec-bar" onclick="window.location='security.html'">
-      <i class="fas fa-shield-alt"></i><span id="sec-txt">Secure</span>
-    </div>
-    <div class="live-bdg"><div class="ldot"></div>LIVE</div>
     <div class="clk" id="clk">--:--:--</div>
   </div>
 </div>
 <div id="reg-screen" class="screen active">
 <div class="reg-box">
   <div class="reg-hdr">
-    <div class="reg-logo">&#x1F5F3;&#xFE0F;</div>
+    <div class="reg-logo">&#x1F5F3;</div>
     <div class="reg-title">Party Agent Registration Portal</div>
-    <div class="reg-sub">Register to receive your secure Agent ID tag &middot; All data encrypted and audited by INEC</div>
+    <div class="reg-sub">NICERES National Registration &middot; All 36 States + FCT &middot; Encrypted and audited by INEC</div>
   </div>
   <div class="sec-notice">
     <i class="fas fa-exclamation-triangle" style="flex-shrink:0;margin-top:1px"></i>
-    <div>Registration is strictly for accredited party agents. Providing false information is a criminal offence under the Electoral Act 2022. Your device fingerprint and location will be captured at registration.</div>
+    <div>Registration is strictly for accredited party agents. Providing false information is a criminal offence under the Electoral Act 2022. Your device fingerprint and GPS will be captured at registration and every login.</div>
   </div>
   <div class="step-tabs">
-    <div class="stab active" id="rtab-1"><div class="stab-n">1</div>Personal Info</div>
+    <div class="stab active" id="rtab-1"><div class="stab-n">1</div>Personal</div>
     <div class="stab" id="rtab-2"><div class="stab-n">2</div>Party &amp; Unit</div>
     <div class="stab" id="rtab-3"><div class="stab-n">3</div>Documents</div>
     <div class="stab" id="rtab-4"><div class="stab-n">4</div>Credentials</div>
-    <div class="stab" id="rtab-5"><div class="stab-n">5</div>Your Tag</div>
+    <div class="stab" id="rtab-5"><div class="stab-n">5</div>ID Tag</div>
   </div>
 
   <!-- STEP 1 -->
   <div class="rsec active" id="rsec-1">
     <div class="grid2">
-      <div class="fg"><label class="fl">First Name *</label><input class="fc" id="r-fn" placeholder="e.g. Taiwo"></div>
-      <div class="fg"><label class="fl">Last Name *</label><input class="fc" id="r-ln" placeholder="e.g. Adeyemi"></div>
+      <div class="fg"><label class="fl">First Name *</label><input class="fc" id="r-fn" placeholder="e.g. Taiwo" oninput="updateTag()"></div>
+      <div class="fg"><label class="fl">Last Name *</label><input class="fc" id="r-ln" placeholder="e.g. Adeyemi" oninput="updateTag()"></div>
       <div class="fg"><label class="fl">Phone Number *</label><input class="fc" id="r-ph" placeholder="+234 8XX XXX XXXX" type="tel"></div>
-      <div class="fg"><label class="fl">Email Address</label><input class="fc" id="r-em" placeholder="agent@party.ng" type="email"></div>
-      <div class="fg"><label class="fl">Date of Birth *</label><input class="fc" id="r-dob" type="date"></div>
-      <div class="fg"><label class="fl">Gender *</label>
+      <div class="fg"><label class="fl">Email Address</label><input class="fc" id="r-em" type="email" placeholder="agent@party.ng"></div>
+      <div class="fg"><label class="fl">Date of Birth</label><input class="fc" id="r-dob" type="date"></div>
+      <div class="fg"><label class="fl">Gender</label>
         <select class="fc fcs" id="r-gn"><option value="">Select</option><option>Male</option><option>Female</option></select>
       </div>
-      <div class="fg full"><label class="fl">Residential Address *</label>
-        <input class="fc" id="r-addr" placeholder="House No, Street, Town, LGA, Ekiti State">
+      <div class="fg full"><label class="fl">Residential Address</label>
+        <input class="fc" id="r-addr" placeholder="House No, Street, Town, LGA, State">
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:10px">
@@ -91,33 +78,63 @@
           <option value="YPP">YPP &mdash; Young Progressives Party</option>
           <option value="SDP">SDP &mdash; Social Democratic Party</option>
           <option value="APM">APM &mdash; Action Peoples Movement</option>
+          <option value="AA">AA &mdash; Action Alliance</option>
+          <option value="ADP">ADP &mdash; Action Democratic Party</option>
+          <option value="BP">BP &mdash; Boot Party</option>
+          <option value="NRM">NRM &mdash; National Rescue Movement</option>
+          <option value="PRP">PRP &mdash; Peoples Redemption Party</option>
+          <option value="APP">APP &mdash; Allied Peoples Movement</option>
+          <option value="ZLP">ZLP &mdash; Zenith Labour Party</option>
+          <option value="APG">APGA &mdash; All Progressives Grand Alliance</option>
+          <option value="PPC">PPC &mdash; Peoples Party of Citizens</option>
+          <option value="AAC">AAC &mdash; African Action Congress</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">LGA *</label>
-        <select class="fc fcs" id="r-lga" onchange="filterRegUnits();updateTag()">
-          <option value="">Select LGA</option>
-          <option value="ADO-EKITI">ADO-EKITI</option>
-          <option value="EFON">EFON</option>
-          <option value="EKITI EAST">EKITI EAST</option>
-          <option value="EKITI SOUTH-WEST">EKITI SOUTH-WEST</option>
-          <option value="EKITI WEST">EKITI WEST</option>
-          <option value="EMURE">EMURE</option>
-          <option value="GBOYIN">GBOYIN</option>
-          <option value="IDO/OSI">IDO/OSI</option>
-          <option value="IJERO">IJERO</option>
-          <option value="IKERE">IKERE</option>
-          <option value="IKOLE">IKOLE</option>
-          <option value="ILEJEMEJE">ILEJEMEJE</option>
-          <option value="IREPODUN/IFELODUN">IREPODUN/IFELODUN</option>
-          <option value="ISE/ORUN">ISE/ORUN</option>
-          <option value="MOBA">MOBA</option>
-          <option value="OYE">OYE</option>
+      <div class="fg"><label class="fl">State *</label>
+        <select class="fc fcs" id="r-state" onchange="onStateChange()">
+          <option value="">Select state</option><option value="Abia">Abia</option>
+<option value="Adamawa">Adamawa</option>
+<option value="Akwa Ibom">Akwa Ibom</option>
+<option value="Anambra">Anambra</option>
+<option value="Bauchi">Bauchi</option>
+<option value="Bayelsa">Bayelsa</option>
+<option value="Benue">Benue</option>
+<option value="Borno">Borno</option>
+<option value="Cross River">Cross River</option>
+<option value="Delta">Delta</option>
+<option value="Ebonyi">Ebonyi</option>
+<option value="Edo">Edo</option>
+<option value="Ekiti">Ekiti</option>
+<option value="Enugu">Enugu</option>
+<option value="FCT Abuja">FCT Abuja</option>
+<option value="Gombe">Gombe</option>
+<option value="Imo">Imo</option>
+<option value="Jigawa">Jigawa</option>
+<option value="Kaduna">Kaduna</option>
+<option value="Kano">Kano</option>
+<option value="Katsina">Katsina</option>
+<option value="Kebbi">Kebbi</option>
+<option value="Kogi">Kogi</option>
+<option value="Kwara">Kwara</option>
+<option value="Lagos">Lagos</option>
+<option value="Nasarawa">Nasarawa</option>
+<option value="Niger">Niger</option>
+<option value="Ogun">Ogun</option>
+<option value="Ondo">Ondo</option>
+<option value="Osun">Osun</option>
+<option value="Oyo">Oyo</option>
+<option value="Plateau">Plateau</option>
+<option value="Rivers">Rivers</option>
+<option value="Sokoto">Sokoto</option>
+<option value="Taraba">Taraba</option>
+<option value="Yobe">Yobe</option>
+<option value="Zamfara">Zamfara</option>
         </select>
       </div>
       <div class="fg full">
         <label class="fl">Search &amp; Select Polling Unit *</label>
         <div class="pu-wrap">
-          <input class="fc" id="r-pu-srch" placeholder="Select LGA first, then type to search..." oninput="searchRegPU()" onfocus="openRegDD()" autocomplete="off">
+          <input class="fc" id="r-pu-srch" placeholder="Select state first, then search by name or code..." oninput="searchRegPU()" onfocus="openRegDD()" autocomplete="off">
           <div class="pu-dd" id="r-pu-dd"></div>
         </div>
         <div id="r-pu-sel" style="margin-top:6px;display:none"></div>
@@ -137,8 +154,8 @@
       <div class="fg">
         <label class="fl">Passport Photograph *</label>
         <div class="photo-up" id="pup-1" onclick="document.getElementById('pi-1').click()">
-          <i class="fas fa-camera" style="font-size:22px;color:var(--g400)"></i>
-          <div style="font-size:11px;font-weight:600">Click to upload passport photo</div>
+          <i class="fas fa-camera" style="font-size:20px;color:var(--g400)"></i>
+          <div style="font-size:11px;font-weight:600">Upload Passport Photo</div>
           <div style="font-size:9px;color:var(--tm)">JPG/PNG &middot; Max 5MB &middot; Clear face</div>
           <img class="photo-prev" id="pp-1" alt="passport">
         </div>
@@ -147,9 +164,9 @@
       <div class="fg">
         <label class="fl">Voter&#39;s Card / NIN Slip *</label>
         <div class="photo-up" id="pup-2" onclick="document.getElementById('pi-2').click()">
-          <i class="fas fa-id-card" style="font-size:22px;color:var(--g400)"></i>
+          <i class="fas fa-id-card" style="font-size:20px;color:var(--g400)"></i>
           <div style="font-size:11px;font-weight:600">Upload ID Document</div>
-          <div style="font-size:9px;color:var(--tm)">Clear scan of Voter Card or NIN slip</div>
+          <div style="font-size:9px;color:var(--tm)">Voter Card or NIN slip</div>
           <img class="photo-prev" id="pp-2" alt="id">
         </div>
         <input type="file" id="pi-2" accept="image/*,application/pdf" style="display:none" onchange="handlePhoto('pi-2','pp-2','pup-2')">
@@ -157,7 +174,7 @@
       <div class="fg full">
         <label class="fl">Party Authorization Letter (optional)</label>
         <div class="photo-up" id="pup-3" onclick="document.getElementById('pi-3').click()">
-          <i class="fas fa-file-alt" style="font-size:20px;color:var(--g400)"></i>
+          <i class="fas fa-file-alt" style="font-size:18px;color:var(--g400)"></i>
           <div style="font-size:11px;font-weight:600">Letter from party chairman</div>
           <img class="photo-prev" id="pp-3" alt="auth">
         </div>
@@ -172,19 +189,15 @@
 
   <!-- STEP 4 -->
   <div class="rsec" id="rsec-4">
-    <div class="sec-notice"><i class="fas fa-lock"></i>
-      <div>Create a strong PIN (6-12 characters). Mix numbers and letters. Never share it. Your PIN is hashed and cannot be recovered.</div>
-    </div>
+    <div class="sec-notice"><i class="fas fa-lock"></i><div>Create a strong PIN (6-12 characters). Never share it. Your PIN is hashed and cannot be recovered.</div></div>
     <div class="grid2">
-      <div class="fg">
-        <label class="fl">Create PIN *</label>
+      <div class="fg"><label class="fl">Create PIN *</label>
         <input class="fc" id="r-pin" type="password" placeholder="Min 6 characters" oninput="checkPwd()">
-        <div class="pwd-bar"><div class="pwd-fill" id="pwd-fill" style="width:0%;background:var(--red)"></div></div>
+        <div class="pwd-bar"><div class="pwd-fill" id="pwd-fill" style="width:0%"></div></div>
         <div id="pwd-txt" style="font-size:9px;color:var(--tm);margin-top:2px">Enter a password</div>
       </div>
       <div class="fg"><label class="fl">Confirm PIN *</label><input class="fc" id="r-pin2" type="password" placeholder="Re-enter PIN"></div>
-      <div class="fg">
-        <label class="fl">Security Question *</label>
+      <div class="fg"><label class="fl">Security Question *</label>
         <select class="fc fcs" id="r-sq">
           <option value="">Select question</option>
           <option>What is the name of your primary school?</option>
@@ -205,52 +218,49 @@
   <div class="rsec" id="rsec-5">
     <div class="grid2">
       <div>
-        <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--ts)">Registration Summary</div>
-        <div id="reg-summary" style="background:var(--g50);border:1px solid var(--g100);border-radius:var(--r10);padding:11px;font-size:11px;line-height:1.9"></div>
-        <div class="sec-notice" style="margin-top:10px;margin-bottom:0">
+        <div style="font-size:11px;font-weight:700;margin-bottom:7px;color:var(--ts)">Registration Summary</div>
+        <div id="reg-summary" style="background:var(--g50);border:1px solid var(--g100);border-radius:var(--r10);padding:10px;font-size:11px;line-height:1.9"></div>
+        <div class="sec-notice" style="margin-top:9px;margin-bottom:0">
           <i class="fas fa-shield-alt"></i>
-          <div>By completing registration you consent to device fingerprinting, GPS logging at every login, and full audit trails on all submissions.</div>
+          <div>By completing registration you consent to device fingerprinting, GPS logging and full audit trails on all submissions.</div>
         </div>
       </div>
       <div>
-        <div style="font-size:11px;font-weight:700;margin-bottom:8px;color:var(--ts)">Your Agent ID Tag</div>
-        <div class="tag-prev" id="tag-prev">
+        <div style="font-size:11px;font-weight:700;margin-bottom:7px;color:var(--ts)">Your Agent ID Tag</div>
+        <div class="tag-prev">
           <div class="tag-av" id="tag-av" style="background:var(--g)">A</div>
           <div style="flex:1">
             <div class="tag-nm" id="tag-nm">Agent Name</div>
             <div class="tag-id" id="tag-id">ID: Pending</div>
             <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:3px">
+              <span class="tag-state" id="tag-state">State</span>
               <span class="tag-lga" id="tag-lga">LGA</span>
-              <span class="tag-town" id="tag-town">Town</span>
             </div>
             <div class="tag-unit" id="tag-unit">Unit: &mdash;</div>
           </div>
           <div class="tag-qr">&#x1F532;</div>
         </div>
-        <div style="background:var(--gl);border:1px solid rgba(0,176,79,.2);border-radius:var(--r10);padding:10px;margin-top:10px;font-size:10px;color:var(--gd)">
-          <i class="fas fa-check-circle"></i> Your Agent ID will be generated on submission. Use it to log in and submit results.
+        <div style="background:var(--gl);border:1px solid rgba(0,176,79,.2);border-radius:var(--r10);padding:9px;margin-top:9px;font-size:10px;color:var(--gd)">
+          <i class="fas fa-check-circle"></i> Your National Agent ID will be generated on submission. Format: NG-{PARTY}-{STATE}-{LGA}-{XXXX}
         </div>
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:14px">
+    <div style="display:flex;justify-content:space-between;margin-top:13px">
       <button class="btn btn-s" onclick="rPrev(5)"><i class="fas fa-arrow-left"></i> Back</button>
       <button class="btn btn-p" id="reg-submit-btn" onclick="completeReg()">
         <i class="fas fa-user-check"></i> Complete Registration &amp; Generate ID Tag
       </button>
     </div>
   </div>
-
 </div>
 </div>
 <div id="toast-c"></div>
 </div>
-
 <script src="js/data/parties.js"></script>
+<script src="js/data/states.js"></script>
 <script src="js/data/polling-units.js"></script>
 <script src="js/security.js"></script>
-<script src="js/map.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/results.js"></script>
 <script src="js/app.js"></script>
-</body>
-</html>
+</body></html>

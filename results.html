@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Results — INEC Ekiti State</title>
+<title>Live Results — NICERES Nigeria</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,8 +13,8 @@
 <div class="threat" id="threat-banner"><i class="fas fa-shield-alt"></i><span id="threat-msg"></span><span id="threat-detail" style="margin-left:auto;font-size:9px;opacity:.8"></span></div>
 <div class="tb">
   <div class="tb-brand"><div class="tb-ico">&#x1F5F3;</div><div>
-    <div class="tb-nm">INEC Ekiti State &mdash; Secure Election Results System</div>
-    <div class="tb-sub">Governorship Election &middot; Official Use Only &middot; Encrypted &amp; Audited</div>
+    <div class="tb-nm">NICERES &mdash; Nigeria Election Results Integrity System</div>
+    <div class="tb-sub">Presidential &amp; Governorship Elections &middot; 36 States + FCT &middot; 176,846 Polling Units</div>
   </div></div>
   <div class="tb-nav"><a href="index.html" class="nb"><i class="fas fa-tv"></i> Situation Room</a>
     <a href="agent.html" class="nb"><i class="fas fa-user-shield"></i> Agent Portal</a>
@@ -30,10 +30,10 @@
 <div id="results-screen" class="screen active">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
     <div>
-      <div style="font-size:18px;font-weight:700">Live Results by Polling Unit</div>
-      <div style="font-size:11px;color:var(--tm);margin-top:2px">Click evidence image to view EC8A sheet &middot; Hash-sealed entries</div>
+      <div style="font-size:17px;font-weight:700">Live Results by Polling Unit</div>
+      <div style="font-size:11px;color:var(--tm);margin-top:2px">AI anomaly flags shown on cards &middot; Click evidence image to view EC8A</div>
     </div>
-    <input class="fc" style="width:210px" placeholder="Search unit, ward or LGA..." id="u-srch" oninput="filterUnits()">
+    <input class="fc" style="width:200px" placeholder="&#x1F50D; Search unit, state..." id="u-srch" oninput="filterUnits()">
   </div>
   <div class="lgachips" id="lga-chips"></div>
   <div class="rg" id="unit-grid"></div>
@@ -46,6 +46,7 @@
 </div>
 
 <script src="js/data/parties.js"></script>
+<script src="js/data/states.js"></script>
 <script src="js/data/polling-units.js"></script>
 <script src="js/security.js"></script>
 <script src="js/map.js"></script>

@@ -1,6 +1,6 @@
 // ============================================================
 //  js/map.js  —  Pure ES5
-//  Dashboard map, GPS picker, manual coords
+//  National dashboard map + agent GPS picker
 // ============================================================
 
 var dashMap      = null;
@@ -8,58 +8,90 @@ var pickerMap    = null;
 var pickerMarker = null;
 var pickedLat    = null;
 var pickedLng    = null;
+var stateMarkers = {};
 
-// ── DASHBOARD MAP ─────────────────────────────────────────
+// ── NATIONAL DASHBOARD MAP ────────────────────────────────
 function initDashMap() {
   if (!document.getElementById('dash-map')) return;
   if (dashMap) { dashMap.invalidateSize(); return; }
 
-  dashMap = L.map('dash-map', { zoomControl:true, scrollWheelZoom:false }).setView([7.72,5.31],9);
+  // Centre on Nigeria
+  dashMap = L.map('dash-map', { zoomControl: true, scrollWheelZoom: false })
+    .setView([9.0820, 8.6753], 6);
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 18
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
   }).addTo(dashMap);
 
-  var i;
-  for (i = 0; i < ALL_POLLING_UNITS.length; i++) {
-    (function(u) {
-      var rep    = reportedResults[u.code];
-      var circle = L.circleMarker([u.lat, u.lng], {
-        radius: rep ? 8 : 4,
-        fillColor: rep ? '#00B04F' : '#E8A020',
-        color: '#fff', weight: 1.5, opacity: 1, fillOpacity: 0.85
+  // Plot each state as a circle marker sized by PU count
+  var i, s, rep, reported, pct, col, radius, pop, circle;
+  for (i = 0; i < NIGERIA_STATES.length; i++) {
+    s        = NIGERIA_STATES[i];
+    reported = getStateReported(s.code);
+    pct      = s.pus > 0 ? reported / s.pus : 0;
+    col      = pct >= 0.9 ? '#00B04F' : pct >= 0.5 ? '#E8A020' : pct > 0 ? '#1A6FA8' : '#8FA598';
+    radius   = Math.max(8, Math.min(22, s.pus / 500));
+
+    (function(st, rp, pt) {
+      circle = L.circleMarker([st.lat, st.lng], {
+        radius: radius, fillColor: col, color: '#fff',
+        weight: 2, opacity: 1, fillOpacity: 0.85
       }).addTo(dashMap);
 
-      var pop = '<b>' + u.code + '</b><br>' + u.name + '<br>' + u.ward + ' &middot; ' + u.lga;
-      if (rep) {
-        var entries = [], k;
-        for (k in rep.results) entries.push([k, rep.results[k]]);
-        entries.sort(function(a,b){return b[1]-a[1];});
-        if (entries.length) {
-          var top = entries[0];
-          var p   = null;
-          var j;
-          for (j = 0; j < PARTIES.length; j++) { if (PARTIES[j].id === top[0]) { p = PARTIES[j]; break; } }
-          if (p) pop += '<br><span style="color:' + p.color + ';font-weight:600">Leading: ' + p.abbr + ' (' + top[1].toLocaleString() + ')</span>';
-        }
-      } else {
-        pop += '<br><span style="color:#E8A020">Awaiting results</span>';
-      }
+      pop = '<b>' + st.name + ' State</b><br>' +
+            'Zone: ' + st.zone + '<br>' +
+            'Capital: ' + st.capital + '<br>' +
+            'LGAs: ' + st.lgas + ' &middot; Total PUs: ' + st.pus.toLocaleString() + '<br>' +
+            'Reported: <strong>' + rp + '</strong> (' + Math.round(pt * 100) + '%)';
       circle.bindPopup(pop);
-    })(ALL_POLLING_UNITS[i]);
+      circle.on('click', function() { zoomToState(st); });
+      stateMarkers[st.code] = circle;
+    })(s, reported, pct);
   }
 
+  // Legend
   var legend = L.control({ position: 'bottomright' });
   legend.onAdd = function() {
     var d = L.DomUtil.create('div');
-    d.style.cssText = 'background:#fff;padding:7px 10px;border-radius:8px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.15)';
-    d.innerHTML = '<b style="display:block;margin-bottom:4px">Status</b>' +
-      '<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">' +
-        '<div style="width:9px;height:9px;border-radius:50%;background:#00B04F"></div>Reported</div>' +
-      '<div style="display:flex;align-items:center;gap:5px">' +
-        '<div style="width:6px;height:6px;border-radius:50%;background:#E8A020;margin-left:1px"></div>Pending</div>';
+    d.style.cssText = 'background:#fff;padding:8px 11px;border-radius:8px;font-size:10px;box-shadow:0 2px 8px rgba(0,0,0,.15);line-height:1.8';
+    d.innerHTML = '<b style="display:block;margin-bottom:3px">Reporting Status</b>' +
+      '<div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#00B04F"></div>&gt;90% reported</div>' +
+      '<div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#E8A020"></div>50%&ndash;90%</div>' +
+      '<div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#1A6FA8"></div>&lt;50%</div>' +
+      '<div style="display:flex;align-items:center;gap:5px"><div style="width:9px;height:9px;border-radius:50%;background:#8FA598"></div>Not started</div>';
     return d;
   };
   legend.addTo(dashMap);
+}
+
+function getStateReported(stateCode) {
+  var count = 0, k, u;
+  for (k in reportedResults) {
+    u = reportedResults[k];
+    if (u.stateCode === stateCode) count++;
+  }
+  return count;
+}
+
+function zoomToState(st) {
+  dashMap.flyTo([st.lat, st.lng], 9, { duration: 1.2 });
+  var stSel = document.getElementById('state-filter');
+  if (stSel) stSel.value = st.name;
+  filterByState(st.name);
+}
+
+function refreshMapMarkers() {
+  if (!dashMap) return;
+  var i, s, rep, pct, col;
+  for (i = 0; i < NIGERIA_STATES.length; i++) {
+    s   = NIGERIA_STATES[i];
+    rep = getStateReported(s.code);
+    pct = s.pus > 0 ? rep / s.pus : 0;
+    col = pct >= 0.9 ? '#00B04F' : pct >= 0.5 ? '#E8A020' : pct > 0 ? '#1A6FA8' : '#8FA598';
+    if (stateMarkers[s.code]) {
+      stateMarkers[s.code].setStyle({ fillColor: col });
+    }
+  }
 }
 
 // ── AGENT MAP PICKER ──────────────────────────────────────
@@ -69,16 +101,12 @@ function openMapModal() {
   modal.classList.add('open');
 
   setTimeout(function() {
-    var center = agentPU ? [agentPU.lat, agentPU.lng] : [7.72, 5.31];
-    var zoom   = agentPU ? 14 : 10;
+    var center = agentPU ? [agentPU.lat, agentPU.lng] : [9.0820, 8.6753];
+    var zoom   = agentPU ? 14 : 6;
 
     if (pickerMap) {
       pickerMap.invalidateSize({ animate: false });
       pickerMap.setView(center, zoom);
-      if (pickedLat !== null && pickerMarker) {
-        pickerMarker.remove();
-        pickerMarker = L.marker([pickedLat, pickedLng]).addTo(pickerMap);
-      }
       return;
     }
 
@@ -89,14 +117,13 @@ function openMapModal() {
 
     if (agentPU) {
       L.circleMarker([agentPU.lat, agentPU.lng], {
-        radius: 10, fillColor: '#1A6FA8', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.8
-      }).bindPopup('<b>' + agentPU.code + '</b><br>' + agentPU.name + '<br><i>Your assigned unit</i>')
+        radius: 10, fillColor: '#1A6FA8', color: '#fff', weight: 2, fillOpacity: 0.85
+      }).bindPopup('<b>' + agentPU.code + '</b><br>' + agentPU.name)
         .addTo(pickerMap).openPopup();
     }
 
     pickerMap.on('click', function(e) {
-      pickedLat = e.latlng.lat;
-      pickedLng = e.latlng.lng;
+      pickedLat = e.latlng.lat; pickedLng = e.latlng.lng;
       if (pickerMarker) pickerMarker.remove();
       pickerMarker = L.marker([pickedLat, pickedLng])
         .addTo(pickerMap)
@@ -119,45 +146,34 @@ function closeMap() {
 }
 var closeMapModal = closeMap;
 
-// ── GPS ───────────────────────────────────────────────────
 function useGPS() {
-  if (!navigator.geolocation) {
-    showManualCoordPanel();
-    toast('GPS not available \u2014 enter coordinates manually', 'warn');
-    return;
-  }
+  if (!navigator.geolocation) { showManualCoordPanel(); toast('GPS not available \u2014 use manual entry', 'warn'); return; }
   toast('Requesting GPS...', 'info');
   navigator.geolocation.getCurrentPosition(
     function(pos) {
-      pickedLat = pos.coords.latitude;
-      pickedLng = pos.coords.longitude;
-      var acc   = Math.round(pos.coords.accuracy);
-      function plotGPS() {
-        if (!pickerMap) { setTimeout(plotGPS, 200); return; }
+      pickedLat = pos.coords.latitude; pickedLng = pos.coords.longitude;
+      var acc = Math.round(pos.coords.accuracy);
+      function plot() {
+        if (!pickerMap) { setTimeout(plot, 200); return; }
         pickerMap.setView([pickedLat, pickedLng], 16);
         if (pickerMarker) pickerMarker.remove();
-        pickerMarker = L.marker([pickedLat, pickedLng])
-          .addTo(pickerMap)
-          .bindPopup('GPS: ' + pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6))
-          .openPopup();
+        pickerMarker = L.marker([pickedLat, pickedLng]).addTo(pickerMap)
+          .bindPopup('GPS: ' + pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6)).openPopup();
         var cd = document.getElementById('picked-coords');
         if (cd) cd.textContent = 'GPS \u2014 ' + pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6) + ' (\u00b1' + acc + 'm)';
         toast('GPS acquired (\u00b1' + acc + 'm)', 'ok');
       }
-      plotGPS();
+      plot();
     },
     function(err) {
       SEC.log('warn', 'GPS failed', 'Code: ' + err.code);
       showManualCoordPanel();
       if (agentPU) {
-        var ml = document.getElementById('manual-lat');
-        var mg = document.getElementById('manual-lng');
-        var mm = document.getElementById('manual-coord-msg');
+        var ml = document.getElementById('manual-lat'), mg = document.getElementById('manual-lng');
         if (ml) ml.value = agentPU.lat.toFixed(6);
         if (mg) mg.value = agentPU.lng.toFixed(6);
-        if (mm) { mm.textContent = 'GPS unavailable. Pre-filled with unit coordinates.'; mm.style.color = 'var(--gold)'; }
       }
-      toast('GPS unavailable \u2014 use manual entry or click the map', 'warn');
+      toast('GPS unavailable \u2014 use manual entry or click map', 'warn');
     },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
   );
@@ -169,33 +185,27 @@ function showManualCoordPanel() {
 }
 
 function applyManualCoords() {
-  var latEl = document.getElementById('manual-lat');
-  var lngEl = document.getElementById('manual-lng');
+  var latEl = document.getElementById('manual-lat'), lngEl = document.getElementById('manual-lng');
   if (!latEl || !lngEl) return;
-  var lat = parseFloat(latEl.value);
-  var lng = parseFloat(lngEl.value);
+  var lat = parseFloat(latEl.value), lng = parseFloat(lngEl.value);
   if (isNaN(lat) || isNaN(lng)) { toast('Enter valid decimal coordinates', 'err'); return; }
-  if (lat < 6.5 || lat > 9.0 || lng < 4.0 || lng > 6.5) toast('Coordinates may be outside Ekiti \u2014 verify', 'warn');
   pickedLat = lat; pickedLng = lng;
-  function plotManual() {
-    if (!pickerMap) { setTimeout(plotManual, 200); return; }
+  function plot() {
+    if (!pickerMap) { setTimeout(plot, 200); return; }
     pickerMap.setView([pickedLat, pickedLng], 15);
     if (pickerMarker) pickerMarker.remove();
-    pickerMarker = L.marker([pickedLat, pickedLng])
-      .addTo(pickerMap)
-      .bindPopup('Manual: ' + pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6))
-      .openPopup();
+    pickerMarker = L.marker([pickedLat, pickedLng]).addTo(pickerMap)
+      .bindPopup('Manual: ' + pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6)).openPopup();
     var cd = document.getElementById('picked-coords');
     if (cd) cd.textContent = 'Manual \u2014 ' + pickedLat.toFixed(6) + ', ' + pickedLng.toFixed(6);
   }
-  plotManual();
+  plot();
   toast('Coordinates applied \u2014 click Confirm to save', 'ok');
 }
 
 function useUnitCoords() {
   if (!agentPU) { toast('Select a polling unit first', 'warn'); return; }
-  var ml = document.getElementById('manual-lat');
-  var mg = document.getElementById('manual-lng');
+  var ml = document.getElementById('manual-lat'), mg = document.getElementById('manual-lng');
   if (ml) ml.value = agentPU.lat.toFixed(6);
   if (mg) mg.value = agentPU.lng.toFixed(6);
   showManualCoordPanel();
@@ -205,11 +215,9 @@ function useUnitCoords() {
 function confirmLoc() {
   if (pickedLat === null) { toast('Click the map or enter coordinates first', 'warn'); return; }
   closeMap();
-  var lb = document.getElementById('loc-box');
-  var mb = document.getElementById('map-btn');
-  var rp = document.getElementById('repick-btn');
-  var ln = document.getElementById('loc-nm');
-  var lc = document.getElementById('loc-coords');
+  var lb=document.getElementById('loc-box'), mb=document.getElementById('map-btn'),
+      rp=document.getElementById('repick-btn'), ln=document.getElementById('loc-nm'),
+      lc=document.getElementById('loc-coords');
   if (lb) lb.style.display = 'flex';
   if (mb) mb.style.display = 'none';
   if (rp) rp.style.display = 'block';
@@ -219,9 +227,7 @@ function confirmLoc() {
 }
 
 function reopenMap() {
-  var lb = document.getElementById('loc-box');
-  var mb = document.getElementById('map-btn');
-  var rp = document.getElementById('repick-btn');
+  var lb=document.getElementById('loc-box'), mb=document.getElementById('map-btn'), rp=document.getElementById('repick-btn');
   if (lb) lb.style.display = 'none';
   if (mb) mb.style.display = 'flex';
   if (rp) rp.style.display = 'none';

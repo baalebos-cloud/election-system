@@ -1,8 +1,0 @@
-{
-  "version": 2,
-  "routes": [
-    { "src": "/api/agents/(.*)", "dest": "/api/agents.js" },
-    { "src": "/api/results/(.*)", "dest": "/api/results.js" },
-    { "src": "/api/health", "dest": "/api/health.js" }
-  ]
-}
